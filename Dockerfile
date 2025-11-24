@@ -69,7 +69,7 @@ RUN curl -sS https://getcomposer.org/installer | php && \
 # Copy configs
 COPY ./.docker/start.sh /start.sh
 COPY ./.docker/nginx.conf /etc/nginx/nginx.conf
-COPY ./.docker/supervisord.conf /etc/supervisor/supervisord.conf
+COPY ./.docker/supervisord.conf /etc/supervisord.conf
 
 # Set working directory
 WORKDIR /var/www
