@@ -1,11 +1,9 @@
 #!/bin/bash
 
 # Ensure necessary directories exist
-mkdir -p /var/www/storage/framework/sessions
-mkdir -p /var/www/storage/framework/cache
-mkdir -p /var/www/storage/framework/views
-mkdir -p /var/www/storage/logs
-mkdir -p /var/www/bootstrap/cache
+mkdir -p /var/www/storage/framework/{sessions,cache,views} \
+         /var/www/storage/logs \
+         /var/www/bootstrap/cache
 
 # Set proper permissions
 chown -R www-data:www-data /var/www/storage /var/www/bootstrap/cache
@@ -18,13 +16,5 @@ php /var/www/artisan view:clear
 php /var/www/artisan config:cache
 php /var/www/artisan storage:link
 
-# Optional: Run background services with supervisord if role is 'background'
-role=${CONTAINER_ROLE:-app}
-
-echo "Starting services"
-service php8.4-fpm start
-nginx -g "daemon off;"
-
-if [ "$role" = "background" ]; then
-    supervisord -n -c /etc/supervisor/supervisord.conf
-fi
+# Start supervisord to manage PHP-FPM, Nginx, and Scheduler
+exec /usr/bin/supervisord -n -c /etc/supervisord.conf
