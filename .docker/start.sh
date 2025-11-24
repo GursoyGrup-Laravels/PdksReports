@@ -16,6 +16,5 @@ php /var/www/artisan view:clear
 php /var/www/artisan config:cache
 php /var/www/artisan storage:link
 
-# Start PHP-FPM and Nginx
-service php8.4-fpm start
-nginx -g "daemon off;"
+# Start Supervisor to manage PHP-FPM, Nginx, and Laravel Scheduler
+exec /usr/bin/supervisord -c /etc/supervisord.conf
