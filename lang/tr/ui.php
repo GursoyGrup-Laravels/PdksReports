@@ -377,4 +377,5 @@ return [
     'user_created_warning' => 'Lütfen güvenlik nedeniyle şifrenizi ilk girişinizde değiştiriniz.',
     'enjoy_your_work' => 'İyi çalışmalar dileriz!',
     'best_regards' => 'Saygılarımızla',
+    'link' => 'Bağlantı',
 ];
