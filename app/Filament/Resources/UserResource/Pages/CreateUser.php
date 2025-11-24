@@ -5,9 +5,12 @@ namespace App\Filament\Resources\UserResource\Pages;
 use App\Filament\Resources\UserResource;
 use App\Models\Employee;
 use App\Models\Report;
+use App\Notifications\UserCreated;
 use Filament\Actions;
 use Filament\Resources\Pages\CreateRecord;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Str;
 
 class CreateUser extends CreateRecord
 {
@@ -26,37 +29,19 @@ class CreateUser extends CreateRecord
             session()->flash('error', 'Çalışan bulunamadı.');
         }
 
-//        try {
-////            $staff = Report::query()->findOrFail($data['name']);
-////            $data['tc_no'] = $staff->tc_no;
-////            $data['name'] = $staff->full_name;
-////            $data['status'] = \App\Enums\ManagerStatusEnum::ACTIVE;
-//            $employee = Employee::where('id', $data['employee_id'])->firstOrFail();
-//            $data['tc_no'] = $employee->tc_no;
-//            $data['status'] = $employee->status;
-//        } catch (\Exception $e) {
-//            session()->flash('error', 'Kullanıcı bulunamadı.');
-//        }
+        // 8 hanelik alfanümerik şifre üret
+        $this->generatedPassword = Str::random(8);
 
-//        if (isset($data['project_id'])) {
-//
-//            $project = DB::connection('sqlsrv')
-//                ->table('dbo.TumProjeler')
-//                ->where('KOD', $data['project_id'])
-//                ->first();
-//
-//            if ($project) {
-//                $data['project_id'] = $project->KOD;
-//                $data['project_name'] = $project->AD;
-//            } else {
-//                // uyarı ver
-//                session()->flash('error', 'Proje bulunamadı.');
-//            }
-//        } else {
-//            // uyarı ver
-//            session()->flash('error', 'Proje kodu boş olamaz.');
-//        }
+        $data['password'] = $this->generatedPassword;
 
         return $data;
+    }
+
+    protected function afterCreate(): void
+    {
+        // Filament create işleminden sonra notification gönder
+        $this->record->notify(
+            new UserCreated($this->record, $this->generatedPassword)
+        );
     }
 }

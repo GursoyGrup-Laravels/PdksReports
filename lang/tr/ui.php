@@ -372,4 +372,9 @@ return [
     'card_reading_list' => 'Kart Okutma Listesi',
     'last_10_records' => 'Son 10 Kayıt',
     'day' => 'Gün',
+    'hello' => 'Merhaba Sayın',
+    'user_created_message' => 'Hesabınız başarıyla oluşturuldu. Aşağıda giriş bilgileriniz bulunmaktadır:',
+    'user_created_warning' => 'Lütfen güvenlik nedeniyle şifrenizi ilk girişinizde değiştiriniz.',
+    'enjoy_your_work' => 'İyi çalışmalar dileriz!',
+    'best_regards' => 'Saygılarımızla',
 ];

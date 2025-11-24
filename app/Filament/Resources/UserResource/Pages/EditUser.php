@@ -49,6 +49,11 @@ class EditUser extends EditRecord
             }
         }
 
+        // new_password alanı doluysa şifreyi güncelle
+        if (!empty($data['new_password'])) {
+            $data['password'] = $data['new_password'];
+        }
+
         return $data;
     }
 }

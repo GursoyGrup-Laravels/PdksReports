@@ -78,17 +78,42 @@ class UserResource extends Resource
                             ->columns(2)
                             ->schema([
                                 Forms\Components\Select::make('employee_id')
+                                    ->disabledOn('edit')
                                     ->label(__('ui.user'))
                                     ->searchable()
                                     ->preload()
-                                    ->options(
-                                        Employee::query()
+                                    ->options(function (callable $get, $livewire) {
+                                        $query = Employee::query()
                                             ->where('status', ManagerStatusEnum::ACTIVE)
-                                            ->orderBy('first_name')
-                                            ->get()
+                                            ->orderBy('first_name');
+
+                                        $currentRecord = $livewire->getRecord();
+
+                                        if ($currentRecord) {
+                                            // EDIT MODU
+                                            // Mevcut employee’i listeden çıkarmıyoruz
+                                            $usedEmployeeIds = \App\Models\User::where('employee_id', '!=', $currentRecord->employee_id)
+                                                ->pluck('employee_id');
+                                        } else {
+                                            // CREATE MODU
+                                            // Daha önce user oluşturulmuş employee'ler listede görünmesin
+                                            $usedEmployeeIds = \App\Models\User::pluck('employee_id');
+                                        }
+
+                                        $query->whereNotIn('id', $usedEmployeeIds);
+
+                                        return $query->get()
                                             ->mapWithKeys(fn($employee) => [$employee->id => $employee->full_name])
-                                            ->toArray()
-                                    )
+                                            ->toArray();
+                                    })
+//                                    ->options(
+//                                        Employee::query()
+//                                            ->where('status', ManagerStatusEnum::ACTIVE)
+//                                            ->orderBy('first_name')
+//                                            ->get()
+//                                            ->mapWithKeys(fn($employee) => [$employee->id => $employee->full_name])
+//                                            ->toArray()
+//                                    )
                                     ->required()
                                     ->validationMessages([
                                         'required' => __('ui.required'),
@@ -145,7 +170,8 @@ class UserResource extends Resource
                                     ->default(1),
                             ])->columns(2),
                         Forms\Components\Fieldset::make(__('ui.password'))
-                            ->hiddenOn(['edit', 'view'])
+                            ->hidden()
+                            //->hiddenOn(['edit', 'view'])
                             ->schema([
                                 Forms\Components\TextInput::make('password')
                                     ->label(__('ui.password'))
