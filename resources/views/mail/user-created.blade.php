@@ -51,7 +51,7 @@
     <p>{{ __('ui.user_created_message') }}</p>
 
     <p>
-        {{ __('ui.link_to_panel') }}: <a href="{{ config('app.url') }}">{{ config('app.url') }}</a>
+        {{ __('ui.link_to_panel') }}: <a href="{{ config('app.url') }}">{{ config('app.url') }}</a><br><br>
         {{ __('ui.email') }}: <strong>{{ $user->email }}</strong><br>
         {{ __('ui.password') }}: <strong>{{ $password }}</strong>
     </p>
