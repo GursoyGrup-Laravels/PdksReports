@@ -36,6 +36,9 @@ class ReportExporter extends Exporter
             ExportColumn::make('date')
                 ->label(__('ui.date'))
                 ->formatStateUsing(fn ($state) => date('d.m.Y', strtotime($state))),
+            ExportColumn::make('day')
+                ->label(__('ui.day'))
+                ->formatStateUsing(fn ($state, $record) => \Carbon\Carbon::parse($record->date)->translatedFormat('l')),
             ExportColumn::make('first_reading')
                 ->label(__('ui.first_reading'))
                 ->formatStateUsing(fn ($state) => $state ? date('H:i:s', strtotime($state)) : ''),
