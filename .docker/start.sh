@@ -1,9 +1,9 @@
 #!/bin/bash
 
 # Ensure necessary directories exist
-mkdir -p /var/www/storage/framework/{sessions,cache,views} \
-         /var/www/storage/logs \
-         /var/www/bootstrap/cache
+mkdir -p /var/www/storage/framework/{sessions,cache,views}
+mkdir -p /var/www/storage/logs
+mkdir -p /var/www/bootstrap/cache
 
 # Set proper permissions
 chown -R www-data:www-data /var/www/storage /var/www/bootstrap/cache
@@ -16,5 +16,6 @@ php /var/www/artisan view:clear
 php /var/www/artisan config:cache
 php /var/www/artisan storage:link
 
-# Start supervisord to manage PHP-FPM, Nginx, and Scheduler
-exec /usr/bin/supervisord -n -c /etc/supervisord.conf
+# Start PHP-FPM and Nginx
+service php8.4-fpm start
+nginx -g "daemon off;"
