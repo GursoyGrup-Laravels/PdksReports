@@ -379,5 +379,5 @@ return [
     'enjoy_your_work' => 'İyi çalışmalar dileriz!',
     'best_regards' => 'Saygılarımızla',
     'link' => 'Bağlantı',
-    'link_to_panel' => 'Panel Bağlantısı'
+    'link_to_panel' => 'Panel Bağlantısı',
 ];
