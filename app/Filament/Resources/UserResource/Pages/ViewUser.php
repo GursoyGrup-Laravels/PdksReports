@@ -70,7 +70,7 @@ class ViewUser extends ViewRecord
                                     ->iconColor('success')
                                     ->listWithLineBreaks()
                                     ->placeholder('-'),
-                            ])->columns(4),
+                            ])->columns(3),
                         Infolists\Components\Fieldset::make(__('ui.record_info'))
                             ->schema([
                                 Infolists\Components\TextEntry::make('createdBy.name')

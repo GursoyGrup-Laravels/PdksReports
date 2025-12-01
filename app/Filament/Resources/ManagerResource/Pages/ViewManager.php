@@ -124,7 +124,7 @@ class ViewManager extends ViewRecord
                                     ->label(__('ui.status'))
                                     ->badge()
                                     ->placeholder('-'),
-                            ])->columns(4),
+                            ])->columns(3),
                         Infolists\Components\Fieldset::make(__('ui.record_info'))
                             ->schema([
                                 Infolists\Components\TextEntry::make('createdBy.name')
