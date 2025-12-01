@@ -308,11 +308,8 @@ class UserResource extends Resource
                 Tables\Actions\ActionGroup::make([
                     Tables\Actions\ViewAction::make(),
                     Tables\Actions\EditAction::make(),
-                    Tables\Actions\DeleteAction::make(),
-//                        ->hidden(fn ($record) => $record->id === auth()->user()->id ||
-//                            $record->cards()->count() > 0 ||
-//                            $record->visitors()->count() > 0 ||
-//                            $record->visitorCards()->count() > 0),
+                    Tables\Actions\DeleteAction::make()
+                        ->hidden(fn ($record) => $record->managers()->exists()),
                 ]),
             ])
             ->bulkActions([

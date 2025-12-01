@@ -69,7 +69,7 @@ class User extends Authenticatable implements FilamentUser
     // Relation with managers
     public function managers()
     {
-        return $this->hasMany(Manager::class);
+        return $this->hasOne(Manager::class, 'employee_id', 'employee_id');
     }
 
     // Relation with employee
