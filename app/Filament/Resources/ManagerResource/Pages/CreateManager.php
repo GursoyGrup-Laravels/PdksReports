@@ -21,11 +21,10 @@ class CreateManager extends CreateRecord
     {
         $data['created_by'] = auth()->id();
 
-
-        dd($data);
-
         // Set the is_manager field of the related employee to YES
         $user = \App\Models\User::find($data['employee_id']);
+
+        dd($user,$data, 'employee_id: '.$data['employee_id']);
 
         if (!$user) {
             throw new \Exception('Kullanıcı bulunamadı.');
