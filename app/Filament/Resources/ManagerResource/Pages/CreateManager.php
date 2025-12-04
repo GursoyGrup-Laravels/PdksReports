@@ -39,6 +39,8 @@ class CreateManager extends CreateRecord
 
         $data['employee_id'] = $employee->id;
 
+        dd($data);
+
         return $data;
     }
 }
