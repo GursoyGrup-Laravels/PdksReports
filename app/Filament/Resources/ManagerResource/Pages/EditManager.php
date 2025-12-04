@@ -83,6 +83,33 @@ class EditManager extends EditRecord
     {
         $data['updated_by'] = auth()->id();
 
+        // set old employee is_manager to false if employee_id changed
+        if ($this->record->employee_id !== $data['employee_id']) {
+            $oldUser = $this->record->user->employee;
+
+            if ($oldUser) {
+                $oldUser->is_manager = false;
+                $oldUser->save();
+            }
+
+            $newUser = \App\Models\User::query()->where('employee_id', $data['employee_id'])->first();
+
+            if (!$newUser) {
+                throw new \Exception('Kullanıcı bulunamadı.');
+            }
+
+            $newEmployee = $newUser->employee;
+
+            if ($newEmployee) {
+                $newEmployee->is_manager = \App\Enums\BooleanStatusEnum::YES;
+                $newEmployee->save();
+            } else {
+                throw new \Exception('Çalışan bulunamadı.');
+            }
+
+            $data['employee_id'] = $newEmployee->id;
+        }
+
         return $data;
     }
 }
