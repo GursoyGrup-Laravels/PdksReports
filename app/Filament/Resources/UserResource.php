@@ -16,6 +16,7 @@ use Filament\Forms\Form;
 use Filament\Resources\Resource;
 use Filament\Tables;
 use Filament\Tables\Table;
+use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Facades\DB;
 
 class UserResource extends Resource
@@ -42,7 +43,7 @@ class UserResource extends Resource
     public static function getNavigationBadge(): ?string
     {
         if (auth()->user()->hasRole('super_admin') || auth()->user()->can('view_all_users')) {
-            return static::getModel()::where('id', '>', 1)->count();
+            return static::getModel()::where('id', '>', 1)->where('id', '!=', auth()->id())->count();
         } else {
             return static::getModel()::where('created_by', auth()->id())->where('id', '>', 1)->count();
         }
@@ -309,7 +310,7 @@ class UserResource extends Resource
                     Tables\Actions\ViewAction::make(),
                     Tables\Actions\EditAction::make(),
                     Tables\Actions\DeleteAction::make()
-                        ->hidden(fn ($record) => $record->managers()->exists()),
+                        ->requiresConfirmation(),
                 ]),
             ])
             ->bulkActions([
@@ -332,5 +333,35 @@ class UserResource extends Resource
             'view' => Pages\ViewUser::route('/{record}'),
             'edit' => Pages\EditUser::route('/{record}/edit'),
         ];
+    }
+
+    public static function canDelete(Model $record): bool
+    {
+        // Check if the user is trying to delete themselves
+        if ($record->id === auth()->id()) {
+            return false;
+        }
+
+        // Check if the user is a super admin
+        if (auth()->user()->hasRole('super_admin')) {
+            // Super admin cannot delete if the user is associated with managers
+            if ($record->managers()->exists()) {
+                return false;
+            }
+
+            return true;
+        }
+
+        // Check if the user is not the creator of the record
+        if ($record->created_by !== auth()->id()) {
+            return false;
+        }
+
+        // Check if the user is associated with any managers
+        if ($record->managers()->exists()) {
+            return false;
+        }
+
+        return true;
     }
 }

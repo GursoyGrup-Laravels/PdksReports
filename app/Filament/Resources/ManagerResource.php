@@ -17,6 +17,7 @@ use Filament\Resources\Resource;
 use Filament\Tables;
 use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\SoftDeletingScope;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
@@ -190,7 +191,6 @@ class ManagerResource extends Resource
                         Tables\Actions\ViewAction::make(),
                         Tables\Actions\EditAction::make(),
                         Tables\Actions\DeleteAction::make()
-                            ->visible(fn ($record) => $record->staffs()->count() === 0)
                             ->requiresConfirmation()
                             ->action(function ($record) {
                                 DB::transaction(function () use ($record) {
@@ -259,5 +259,10 @@ class ManagerResource extends Resource
             'edit' => Pages\EditManager::route('/{record}/edit'),
             'view' => Pages\ViewManager::route('/{record}')
         ];
+    }
+
+    public static function canDelete(Model $record): bool
+    {
+        return $record->staffs()->count() === 0 && (auth()->user()?->hasRole('super_admin') || $record->created_by === auth()->id());
     }
 }

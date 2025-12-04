@@ -33,7 +33,6 @@ class ViewManager extends ViewRecord
                 }),
             Actions\DeleteAction::make()
                 ->requiresConfirmation()
-                ->visible(fn ($record) => $record->staffs()->count() === 0)
                 ->action(function ($record) {
                     DB::transaction(function () use ($record) {
                         try {
