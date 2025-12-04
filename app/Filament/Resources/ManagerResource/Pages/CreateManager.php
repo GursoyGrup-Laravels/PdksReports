@@ -3,6 +3,7 @@
 namespace App\Filament\Resources\ManagerResource\Pages;
 
 use App\Filament\Resources\ManagerResource;
+use App\Models\User;
 use Filament\Actions;
 use Filament\Resources\Pages\CreateRecord;
 
@@ -22,9 +23,7 @@ class CreateManager extends CreateRecord
         $data['created_by'] = auth()->id();
 
         // Set the is_manager field of the related employee to YES
-        $user = $this->user->where('employee_id', $data['employee_id'])->first();
-
-        dd($user,$data, 'employee_id: '.$data['employee_id']);
+        $user = User::query()->where('employee_id', $data['employee_id'])->first();
 
         if (!$user) {
             throw new \Exception('Kullanıcı bulunamadı.');
