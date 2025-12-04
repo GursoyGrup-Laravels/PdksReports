@@ -79,6 +79,8 @@ class ViewUser extends ViewRecord
                                     ->placeholder('-'),
                                 Infolists\Components\TextEntry::make('created_at')
                                     ->label(__('ui.created_at'))
+                                    ->icon('heroicon-o-calendar-days')
+                                    ->placeholder('-')
                                     ->dateTime(),
                                 Infolists\Components\TextEntry::make('updatedBy.name')
                                     ->visible(fn ($record) => filled($record->updated_by)) // Sadece güncelleyen varsa göster
@@ -88,6 +90,8 @@ class ViewUser extends ViewRecord
                                 Infolists\Components\TextEntry::make('updated_at')
                                     ->visible(fn ($record) => filled($record->updated_by))
                                     ->label(__('ui.last_updated_at'))
+                                    ->icon('heroicon-o-calendar-days')
+                                    ->placeholder('-')
                                     ->dateTime(),
                             ])->columns(4),
                     ]),
