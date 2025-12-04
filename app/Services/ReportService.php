@@ -119,13 +119,24 @@ class ReportService
      */
     protected function formatData(array $data): ?array
     {
+        // TC boş veya null ise alma
         if (empty($data['tc_no'])) {
             return null;
         }
 
+        $tc = trim($data['tc_no']);
+
+        // ❗ TC tamamen sayılardan oluşmuyorsa alma
+        if (!preg_match('/^[0-9]+$/', $tc)) {
+            return null;
+        }
+
+        // Eğer 11 haneli olmak zorundaysa (opsiyonel):
+        // if (!preg_match('/^[0-9]{11}$/', $tc)) { return null; }
+
         return [
             'external_id'     => $data['external_id'] ?? null,
-            'tc_no'           => $data['tc_no'],
+            'tc_no'           => $tc,
             'full_name'       => $data['full_name'] ?? null,
             'department_name' => $data['department_name'] ?? null,
             'position_name'   => $data['position_name'] ?? null,
@@ -139,6 +150,29 @@ class ReportService
             'updated_at'      => now(),
         ];
     }
+
+//    protected function formatData(array $data): ?array
+//    {
+//        if (empty($data['tc_no'])) {
+//            return null;
+//        }
+//
+//        return [
+//            'external_id'     => $data['external_id'] ?? null,
+//            'tc_no'           => $data['tc_no'],
+//            'full_name'       => $data['full_name'] ?? null,
+//            'department_name' => $data['department_name'] ?? null,
+//            'position_name'   => $data['position_name'] ?? null,
+//            'date'            => $data['date'] ?? null,
+//            'day'             => $data['day'] ?? null,
+//            'first_reading'   => self::parseDate($data['first_reading'] ?? null),
+//            'last_reading'    => self::parseDate($data['last_reading'] ?? null),
+//            'working_time'    => $data['working_time'] ?? null,
+//            'status'          => $data['status'] ?? null,
+//            'created_at'      => now(),
+//            'updated_at'      => now(),
+//        ];
+//    }
 
     /**
      * Tarih formatlama.
