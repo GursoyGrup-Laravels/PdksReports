@@ -9,6 +9,7 @@ use App\Filament\Resources\ManagerResource\RelationManagers;
 use App\Models\Employee;
 use App\Models\Manager;
 use App\Models\Report;
+use App\Models\User;
 use Filament\Forms;
 use Filament\Forms\Components\Fieldset;
 use Filament\Forms\Form;
@@ -81,31 +82,66 @@ class ManagerResource extends Resource
                                     ->label(__('ui.manager'))
                                     ->searchable()
                                     ->preload()
+//                                    ->options(function (callable $get, ?Manager $record = null) {
+//                                        $existingUserIds = Manager::query()
+//                                            ->when($record, function ($query) use ($record) {
+//                                                return $query->where('id', '!=', $record->id);
+//                                            })
+//                                            ->pluck('employee_id')
+//                                            ->toArray();
+//
+//                                        $query = \App\Models\User::query()
+//                                            ->whereHas('employee', function ($q) {
+//                                                $q->where('is_manager', false)
+//                                                    ->where('status', ManagerStatusEnum::ACTIVE);
+//                                            })
+//                                            ->where('id', '!=', Auth::id());
+//
+//                                        if (!auth()->user()?->hasRole('super_admin') && !auth()->user()?->can('view_all_managers')) {
+//                                            $query->where('created_by', auth()->id());
+//                                        }
+//
+//                                        $users = $query->whereNotIn('employee_id', $existingUserIds)
+//                                            ->orderBy('name')
+//                                            ->get();
+//
+//                                        return $users->pluck('name', 'id')->toArray();
+//                                    })
                                     ->options(function (callable $get, ?Manager $record = null) {
-                                        $existingUserIds = Manager::query()
-                                            ->when($record, function ($query) use ($record) {
-                                                return $query->where('id', '!=', $record->id);
-                                            })
+
+                                        $existingEmployeeIds = Manager::query()
+                                            ->when($record, fn($q) => $q->where('id', '!=', $record->id))
                                             ->pluck('employee_id')
                                             ->toArray();
 
-                                        $query = \App\Models\User::query()
+                                        $query = User::query()
                                             ->whereHas('employee', function ($q) {
                                                 $q->where('is_manager', false)
                                                     ->where('status', ManagerStatusEnum::ACTIVE);
                                             })
-                                            ->where('id', '!=', Auth::id());
+                                            ->where('employee_id', '!=', auth()->user()?->employee_id);
 
-                                        if (!auth()->user()?->hasRole('super_admin') && !auth()->user()?->can('view_all_managers')) {
+                                        if (!auth()->user()?->hasRole('super_admin')
+                                            && !auth()->user()?->can('view_all_managers')) {
                                             $query->where('created_by', auth()->id());
                                         }
 
-                                        $users = $query->whereNotIn('employee_id', $existingUserIds)
+                                        $users = $query
+                                            ->whereNotIn('employee_id', $existingEmployeeIds)
                                             ->orderBy('name')
                                             ->get();
 
-                                        return $users->pluck('name', 'id')->toArray();
+                                        // ❗ Edit modunda mevcut employee her durumda listeye eklenmeli
+                                        if ($record && $record->user) {
+                                            $users->push($record->user);
+                                        }
+
+                                        // ❗ options key = employee_id olmalı
+                                        return $users->mapWithKeys(fn($user) => [
+                                            $user->employee_id => $user->name
+                                        ])->toArray();
                                     })
+
                                     ->required()
                                     ->validationMessages([
                                         'required' => __('ui.required'),
