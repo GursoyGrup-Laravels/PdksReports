@@ -22,7 +22,7 @@ class CreateManager extends CreateRecord
         $data['created_by'] = auth()->id();
 
         // Set the is_manager field of the related employee to YES
-        $user = \App\Models\User::find($data['employee_id']);
+        $user = $this->user->where('employee_id', $data['employee_id'])->first();
 
         dd($user,$data, 'employee_id: '.$data['employee_id']);
 
