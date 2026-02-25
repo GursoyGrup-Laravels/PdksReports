@@ -143,7 +143,7 @@ class ListEmployees extends ListRecords
             ->badgeIcon('heroicon-o-question-mark-circle')
             ->badgeColor('warning')
             ->modifyQueryUsing(function ($query) use ($hasPermission) {
-                $query->whereNull('status');
+                $query->where('status', ManagerStatusEnum::UNDEFINED);
                 if (! $hasPermission) {
                     $manager = \App\Models\Manager::where('employee_id', auth()->user()->employee_id)->first();
                     if ($manager) {
