@@ -384,4 +384,5 @@ return [
     'footer_message' => 'Bu e-posta otomatik olarak oluşturulmuştur, lütfen yanıtlamayınız.',
     'all_rights_reserved' => 'Tüm hakları saklıdır',
     'gursoy_group' => 'Gürsoy Grup',
+    'undefined' => 'Tanımsız',
 ];
