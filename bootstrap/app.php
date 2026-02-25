@@ -26,7 +26,7 @@ return Application::configure(basePath: dirname(__DIR__))
             });
 
         $schedule->command('employee:daily')
-            ->everyMinute() // Her tek saatte bir yani 1, 3, 5, ...
+            ->everyOddHour()
             ->timezone(config('app.timezone', 'UTC'))
             ->onSuccess(function () {
                 info('Personel veri senkronizasyonu başarıyla tamamlandı.');
