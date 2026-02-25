@@ -11,11 +11,14 @@ enum ManagerStatusEnum: int implements HasLabel, HasColor, HasIcon
     case ACTIVE     = 0;
     case INACTIVE   = 100;
 
+    case UNDEFINED  = 99; // tanımsız, bilinmeyen durumlar için
+
     public function getLabel(): string
     {
         return match ($this) {
             self::ACTIVE    => __('ui.active'),
             self::INACTIVE  => __('ui.inactive'),
+            self::UNDEFINED => __('ui.undefined'),
         };
     }
 
@@ -24,6 +27,7 @@ enum ManagerStatusEnum: int implements HasLabel, HasColor, HasIcon
         return match ($this) {
             self::ACTIVE    => 'success',
             self::INACTIVE  => 'danger',
+            self::UNDEFINED => 'secondary',
         };
     }
 
@@ -32,6 +36,7 @@ enum ManagerStatusEnum: int implements HasLabel, HasColor, HasIcon
         return match ($this) {
             self::ACTIVE    => 'heroicon-o-check-circle',
             self::INACTIVE  => 'heroicon-o-x-circle',
+            self::UNDEFINED => 'heroicon-o-question-mark-circle',
         };
     }
 
