@@ -27,7 +27,7 @@ enum ManagerStatusEnum: int implements HasLabel, HasColor, HasIcon
         return match ($this) {
             self::ACTIVE    => 'success',
             self::INACTIVE  => 'danger',
-            self::UNDEFINED => 'secondary',
+            self::UNDEFINED => 'warning',
         };
     }
 
