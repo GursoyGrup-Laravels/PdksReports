@@ -162,6 +162,9 @@ class ReportResource extends Resource
             ->headerActions([
                 Tables\Actions\ExportAction::make()
                     ->exporter(\App\Filament\Exports\ReportExporter::class)
+                    ->modifyQueryUsing(fn (Builder $query) =>
+                    $query->reorder()->orderBy('date', 'asc')
+                    )
                     ->label(__('ui.export'))
                     ->modalHeading(__('ui.export_reports'))
                     ->icon('heroicon-o-arrow-down-tray')
