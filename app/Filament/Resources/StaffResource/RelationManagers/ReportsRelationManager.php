@@ -76,10 +76,44 @@ class ReportsRelationManager extends RelationManager
                     ->color('success'),
             ])
             ->filters([
-                //
+                Tables\Filters\Filter::make('today')
+                    ->label(__('ui.today'))
+                    ->query(fn (Builder $query): Builder => $query->whereDate('date', today()))
+                    ->default(),
+                Tables\Filters\Filter::make('date_range')
+                    ->label(__('ui.date_range'))
+                    ->form([
+                        Forms\Components\DatePicker::make('from')
+                            ->label(__('ui.from_date'))
+                            ->live()
+                            ->afterStateUpdated(fn (callable $set) => $set('to', null))
+                            ->maxDate(today()),
+                        Forms\Components\DatePicker::make('to')
+                            ->label(__('ui.to_date'))
+                            ->maxDate(today()),
+                    ])
+                    ->query(function (Builder $query, array $data): Builder {
+                        return $query
+                            ->when(
+                                $data['from'],
+                                fn (Builder $query, $date): Builder => $query->whereDate('date', '>=', $date),
+                            )
+                            ->when(
+                                $data['to'],
+                                fn (Builder $query, $date): Builder => $query->whereDate('date', '<=', $date),
+                            );
+                    }),
             ])
             ->headerActions([
-                Tables\Actions\CreateAction::make(),
+                Tables\Actions\ExportAction::make()
+                    ->exporter(\App\Filament\Exports\ReportExporter::class)
+                    ->modifyQueryUsing(fn (Builder $query) =>
+                    $query->reorder()->orderBy('date', 'asc')
+                    )
+                    ->label(__('ui.export'))
+                    ->modalHeading(__('ui.export_reports'))
+                    ->icon('heroicon-o-arrow-down-tray')
+                    ->visible(fn () => auth()->user()->hasRole('super_admin') || auth()->user()->can('export_reports')),
             ])
             ->actions([
                 //
