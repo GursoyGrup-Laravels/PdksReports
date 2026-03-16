@@ -143,9 +143,13 @@ class ReportResource extends Resource
                     ->label(__('ui.date_range'))
                     ->form([
                         Forms\Components\DatePicker::make('from')
-                            ->label(__('ui.from_date')),
+                            ->label(__('ui.from_date'))
+                            ->live()
+                            ->afterStateUpdated(fn (callable $set) => $set('to', null))
+                            ->maxDate(today()),
                         Forms\Components\DatePicker::make('to')
-                            ->label(__('ui.to_date')),
+                            ->label(__('ui.to_date'))
+                            ->maxDate(today()),
                     ])
                     ->query(function (Builder $query, array $data): Builder {
                         return $query
