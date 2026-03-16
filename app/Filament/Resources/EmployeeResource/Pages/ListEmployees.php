@@ -123,6 +123,40 @@ class ListEmployees extends ListRecords
                 return $query;
             });
 
+        // undefined status tab
+        $tabs['undefined'] = Tab::make(__('ui.undefined'))
+            ->badge(
+                Employee::query()
+                    ->when(! $hasPermission, function ($query) {
+                        $manager = \App\Models\Manager::where('employee_id', auth()->user()->employee_id)->first();
+                        if ($manager) {
+                            $employeeIds = \App\Models\Staff::where('manager_id', $manager->id)->pluck('employee_id');
+                            $query->whereIn('id', $employeeIds)
+                                  ->where('status', ManagerStatusEnum::ACTIVE);
+                        } else {
+                            $query->whereRaw('1 = 0'); // No access
+                        }
+                    })
+                    ->where('status', ManagerStatusEnum::UNDEFINED)
+                    ->count()
+            )
+            ->badgeIcon('heroicon-o-question-mark-circle')
+            ->badgeColor('warning')
+            ->modifyQueryUsing(function ($query) use ($hasPermission) {
+                $query->where('status', ManagerStatusEnum::UNDEFINED);
+                if (! $hasPermission) {
+                    $manager = \App\Models\Manager::where('employee_id', auth()->user()->employee_id)->first();
+                    if ($manager) {
+                        $employeeIds = \App\Models\Staff::where('manager_id', $manager->id)->pluck('employee_id');
+                        $query->whereIn('id', $employeeIds)
+                              ->where('status', ManagerStatusEnum::ACTIVE);
+                    } else {
+                        $query->whereRaw('1 = 0'); // No access
+                    }
+                }
+                return $query;
+            });
+
 
         return $tabs;
 
