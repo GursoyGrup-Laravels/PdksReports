@@ -111,16 +111,17 @@ class ReportResource extends Resource
                     ->label(__('ui.first_reading'))
                     ->badge()
                     ->color('success')
-                    ->time(),
+                    ->time('H:i'),
                 Tables\Columns\TextColumn::make('last_reading')
                     ->label(__('ui.last_reading'))
                     ->badge()
                     ->color('success')
-                    ->time(),
+                    ->time('H:i'),
                 Tables\Columns\TextColumn::make('working_time')
                     ->label(__('ui.working_time'))
                     ->badge()
-                    ->color('success'),
+                    ->color('success')
+                    ->time('H:i'),
                 Tables\Columns\TextColumn::make('status')
                     ->label(__('ui.status'))
                     ->badge(),

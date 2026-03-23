@@ -64,16 +64,17 @@ class ReportsRelationManager extends RelationManager
                     ->label(__('ui.first_reading'))
                     ->badge()
                     ->color('success')
-                    ->Time(),
+                    ->time('H:i'),
                 Tables\Columns\TextColumn::make('last_reading')
                     ->label(__('ui.last_reading'))
                     ->badge()
                     ->color('success')
-                    ->Time(),
+                    ->time('H:i'),
                 Tables\Columns\TextColumn::make('working_time')
                     ->label(__('ui.working_time'))
                     ->badge()
-                    ->color('success'),
+                    ->color('success')
+                    ->time('H:i'),
             ])
             ->filters([
                 Tables\Filters\Filter::make('today')

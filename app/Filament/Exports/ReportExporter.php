@@ -41,12 +41,13 @@ class ReportExporter extends Exporter
                 ->formatStateUsing(fn ($state, $record) => \Carbon\Carbon::parse($record->date)->translatedFormat('l')),
             ExportColumn::make('first_reading')
                 ->label(__('ui.first_reading'))
-                ->formatStateUsing(fn ($state) => $state ? date('H:i:s', strtotime($state)) : ''),
+                ->formatStateUsing(fn ($state) => $state ? date('H:i', strtotime($state)) : ''),
             ExportColumn::make('last_reading')
                 ->label(__('ui.last_reading'))
-                ->formatStateUsing(fn ($state) => $state ? date('H:i:s', strtotime($state)) : ''),
+                ->formatStateUsing(fn ($state) => $state ? date('H:i', strtotime($state)) : ''),
             ExportColumn::make('working_time')
-                ->label(__('ui.working_time')),
+                ->label(__('ui.working_time'))
+                ->formatStateUsing(fn ($state) => $state ? date('H:i', strtotime($state)) : ''),
             ExportColumn::make('status')
                 ->label(__('ui.status'))
                 ->formatStateUsing(fn ($state): ?string =>
