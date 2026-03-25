@@ -18,6 +18,7 @@ use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\SoftDeletingScope;
 use Illuminate\Support\Facades\Auth;
+use PHPUnit\Util\Filter;
 
 class ReportResource extends Resource
 {
@@ -127,6 +128,10 @@ class ReportResource extends Resource
                     ->badge(),
             ])
             ->filters([
+                Tables\Filters\Filter::make('today')
+                    ->label(__('ui.today'))
+                    ->query(fn (Builder $query): Builder => $query->whereDate('date', today()))
+                    ->default(),
                 Tables\Filters\SelectFilter::make('department_name')
                     ->label(__('ui.department'))
                     ->preload()
@@ -136,10 +141,11 @@ class ReportResource extends Resource
                         ->pluck('department_name', 'department_name')
                         ->toArray()
                     ),
-                Tables\Filters\Filter::make('today')
-                    ->label(__('ui.today'))
-                    ->query(fn (Builder $query): Builder => $query->whereDate('date', today()))
-                    ->default(),
+                Tables\Filters\SelectFilter::make('status')
+                    ->label(__('ui.status'))
+                    ->preload()
+                    ->searchable()
+                    ->options(ManagerStatusEnum::class),
                 Tables\Filters\Filter::make('date_range')
                     ->label(__('ui.date_range'))
                     ->form([
@@ -168,7 +174,9 @@ class ReportResource extends Resource
                 Tables\Actions\ExportAction::make()
                     ->exporter(\App\Filament\Exports\ReportExporter::class)
                     ->modifyQueryUsing(fn (Builder $query) =>
-                    $query->reorder()->orderBy('date', 'asc')
+                    $query->reorder()
+                        ->orderBy('full_name')
+                        ->orderBy('date')
                     )
                     ->label(__('ui.export'))
                     ->modalHeading(__('ui.export_reports'))
