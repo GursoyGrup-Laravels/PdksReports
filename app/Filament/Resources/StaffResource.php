@@ -2,6 +2,7 @@
 
 namespace App\Filament\Resources;
 
+use App\Enums\ManagerStatusEnum;
 use App\Filament\Resources\ManagerResource\RelationManagers\StaffsRelationManager;
 use App\Filament\Resources\StaffResource\Pages;
 use App\Filament\Resources\StaffResource\RelationManagers;
@@ -98,6 +99,9 @@ class StaffResource extends Resource
                         $q->whereRaw("CONCAT(first_name, ' ', last_name) LIKE ?", ["%{$search}%"])
                         )
                     ),
+                Tables\Columns\TextColumn::make('employee.status')
+                    ->label(__('ui.status'))
+                    ->badge(),
                 Tables\Columns\TextColumn::make('employee.tc_no')
                     ->visible(fn () => auth()->user()->hasRole('super_admin') || auth()->user()->can('view_tc_no'))
                     ->label(__('ui.tc_no'))
@@ -135,7 +139,24 @@ class StaffResource extends Resource
                     ->toggleable(isToggledHiddenByDefault: true),
             ])
             ->filters([
-                //
+                Tables\Filters\SelectFilter::make('manager_id')
+                    ->visible(fn () => auth()->user()->hasRole('super_admin') || auth()->user()->can('view_all_managers'))
+                    ->label(__('ui.manager'))
+                    ->preload()
+                    ->searchable()
+                    ->options(function () {
+                        $managers = \App\Models\Manager::with('user')
+                            ->whereHas('staffs')
+                            ->get();
+                        return $managers->pluck('user.name', 'id')->toArray();
+                    }),
+                Tables\Filters\SelectFilter::make('employee.status')
+                    ->label(__('ui.status'))
+                    ->options(ManagerStatusEnum::class)
+                    ->default(\App\Enums\ManagerStatusEnum::ACTIVE->value)
+                    ->query(fn (Builder $query, $state) =>
+                        $state ? $query->whereHas('employee', fn ($q) => $q->where('status', $state)) : $query
+                    ),
             ])
             ->headerActions([
                 Tables\Actions\ExportAction::make()

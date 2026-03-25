@@ -145,7 +145,8 @@ class ReportResource extends Resource
                     ->label(__('ui.status'))
                     ->preload()
                     ->searchable()
-                    ->options(ManagerStatusEnum::class),
+                    ->options(ManagerStatusEnum::class)
+                    ->default(ManagerStatusEnum::ACTIVE->value),
                 Tables\Filters\Filter::make('date_range')
                     ->label(__('ui.date_range'))
                     ->form([
