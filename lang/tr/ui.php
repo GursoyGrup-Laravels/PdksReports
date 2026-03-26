@@ -178,6 +178,8 @@ return [
     'old_password' => 'Eski Şifre',
     'new_password' => 'Yeni Şifre',
     'new_password_confirmation' => 'Yeni Şifre Onayı',
+    'password_confirmation_required' => 'Şifre onayı gereklidir',
+    'password_same' => 'Girilen şifreler uyuşmuyor',
     'change_password' => 'Şifre Değiştir',
     'current_password' => 'Mevcut Şifre',
     'set_password' => 'Şifre Belirle',
