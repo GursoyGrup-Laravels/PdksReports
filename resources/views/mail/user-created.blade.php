@@ -33,8 +33,11 @@
                 <tr>
                     <td align="center" style="background-color: #007bff; padding: 35px 20px;">
                         <h1 style="margin: 0; color: #ffffff; font-size: 26px; font-weight: bold; letter-spacing: 1px;">
-                            {{ __('ui.user_created') }}
+                            {{ config('app.name') }}
                         </h1>
+                        <p style="margin: 10px 0 0 0; color: #ffffff; font-size: 18px;">
+                            {{ __('ui.user_created') }}
+                        </p>
                     </td>
                 </tr>
 

@@ -385,4 +385,5 @@ return [
     'all_rights_reserved' => 'Tüm hakları saklıdır',
     'gursoy_group' => 'Gürsoy Grup',
     'undefined' => 'Tanımsız',
+    'email_helper' => 'Kullanıcıya e-posta gönderilecektir. Lütfen geçerli bir e-posta adresi girdiğinizden emin olun.',
 ];

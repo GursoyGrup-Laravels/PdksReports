@@ -81,6 +81,7 @@ class UserResource extends Resource
                                 Forms\Components\Select::make('employee_id')
                                     ->disabledOn('edit')
                                     ->label(__('ui.user'))
+                                    ->prefixIcon('heroicon-o-user')
                                     ->searchable()
                                     ->preload()
                                     ->options(function (callable $get, $livewire) {
@@ -107,19 +108,37 @@ class UserResource extends Resource
                                             ->mapWithKeys(fn($employee) => [$employee->id => $employee->full_name])
                                             ->toArray();
                                     })
-//                                    ->options(
-//                                        Employee::query()
-//                                            ->where('status', ManagerStatusEnum::ACTIVE)
-//                                            ->orderBy('first_name')
-//                                            ->get()
-//                                            ->mapWithKeys(fn($employee) => [$employee->id => $employee->full_name])
-//                                            ->toArray()
-//                                    )
                                     ->required()
                                     ->validationMessages([
                                         'required' => __('ui.required'),
-                                        ]),
+                                        ])
+                                    ->live()
+                                    ->afterStateUpdated(function (callable $get, callable $set, $state) {
+                                        if ($state) {
+                                            $employee = Employee::find($state);
+                                            $set('email', $employee?->email);
+                                        } else {
+                                            $set('email', null);
+                                        }
+                                    }),
                                 Forms\Components\TextInput::make('email')
+                                    ->disabledOn('edit')
+                                    ->label(__('ui.email'))
+                                    ->placeholder(__('ui.email'))
+                                    ->helperText(__('ui.email_helper'))
+                                    ->prefixIcon('heroicon-o-envelope')
+                                    ->email()
+                                    ->maxLength(50)
+                                    ->rule('email')
+                                    //->readOnly()
+                                    ->dehydrated()
+                                    ->validationMessages([
+                                        'email' => __('ui.email_invalid'),
+                                        'required' => __('ui.required'),
+                                    ])
+                                    ->required(),
+                                Forms\Components\TextInput::make('email')
+                                    ->hidden()
                                     ->label(__('ui.email'))
                                     ->placeholder(__('ui.email'))
                                     ->email()
@@ -155,6 +174,7 @@ class UserResource extends Resource
                             ->schema([
                                 Forms\Components\Select::make('roles')
                                     ->label(__('ui.roles'))
+                                    ->prefixIcon('heroicon-o-shield-check')
                                     ->relationship('roles', 'name')
                                     ->multiple()
                                     ->preload()
@@ -166,6 +186,7 @@ class UserResource extends Resource
                                 Forms\Components\Select::make('status')
                                     ->hiddenOn('create')
                                     ->label(__('ui.status'))
+                                    ->prefixIcon('heroicon-o-adjustments-horizontal')
                                     ->options(ManagerStatusEnum::class)
                                     ->required()
                                     ->default(1),
@@ -177,6 +198,7 @@ class UserResource extends Resource
                                 Forms\Components\TextInput::make('password')
                                     ->label(__('ui.password'))
                                     ->placeholder(__('ui.password'))
+                                    ->prefixIcon('heroicon-o-lock-closed')
                                     ->password()
                                     ->minLength(8)
                                     ->maxLength(255)
@@ -192,6 +214,7 @@ class UserResource extends Resource
                                 Forms\Components\TextInput::make('password_confirmation')
                                     ->label(__('ui.password_confirmation'))
                                     ->placeholder(__('ui.password_confirmation'))
+                                    ->prefixIcon('heroicon-o-lock-closed')
                                     ->password()
                                     ->maxLength(255)
                                     ->dehydrated(false), // asla DB'ye gitmesin
@@ -206,13 +229,17 @@ class UserResource extends Resource
                                         Forms\Components\TextInput::make('new_password')
                                             ->hiddenLabel()
                                             ->placeholder(__('ui.new_password'))
+                                            ->prefixIcon('heroicon-o-lock-closed')
                                             ->password()
+                                            ->revealable()
                                             ->minLength(8)
                                             ->nullable(),
                                         Forms\Components\TextInput::make('new_password_confirmation')
                                             ->hiddenLabel()
                                             ->placeholder(__('ui.new_password_confirmation'))
+                                            ->prefixIcon('heroicon-o-lock-closed')
                                             ->password()
+                                            ->revealable()
                                             ->same('new_password')
                                             ->minLength(8)
                                             ->validationMessages([

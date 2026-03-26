@@ -40,6 +40,7 @@ class EmployeeService
                 [
                     'first_name' => $data['first_name'] ?? null,
                     'last_name' => $data['last_name'] ?? null,
+                    'email' => $data['email'] ?? null,
                     'status' => $data['status'] ?? 100,
                     'create_time' => $this->toMysqlDate($data['create_time'] ?? null),
                     'update_time' => $this->toMysqlDate($data['update_time'] ?? null),
