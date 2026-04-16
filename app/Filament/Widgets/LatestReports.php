@@ -3,6 +3,8 @@
 namespace App\Filament\Widgets;
 
 use App\Enums\ManagerStatusEnum;
+use App\Models\Report;
+use App\Models\Scopes\AuthorizedReportScope;
 use Carbon\Carbon;
 use Filament\Tables;
 use Filament\Tables\Table;
@@ -31,32 +33,13 @@ class LatestReports extends BaseWidget
     public function table(Table $table): Table
     {
         return $table
-            ->query(function () {
-                $hasPermissionToViewAll = auth()->user()?->hasRole('super_admin') || auth()->user()?->can('view_all_reports');
-
-                $query = \App\Models\Report::query()
-                    ->whereNotNull('first_reading')
-                    ->whereNotNull('last_reading')
-                    ->where('status', '==', ManagerStatusEnum::ACTIVE)
-                    ->orderByDesc('last_reading')
-                    ->limit(10);
-
-                if (!$hasPermissionToViewAll) {
-                    $manager = \App\Models\Manager::where('employee_id', auth()->user()->employee_id)->first();
-                    if ($manager) {
-                        $employeeIds = \App\Models\Staff::where('manager_id', $manager->id)->pluck('employee_id');
-                        $tcNos = \App\Models\Employee::whereIn('id', $employeeIds)
-                            ->where('status', ManagerStatusEnum::ACTIVE)
-                            ->pluck('tc_no');
-                        $query->whereIn('tc_no', $tcNos);
-                    } else {
-                        // If the user is not a manager, return no records
-                        $query->whereRaw('1 = 0');
-                    }
-                }
-
-                return $query;
-            })
+            ->query(fn () => AuthorizedReportScope::apply(Report::query(), auth()->user())
+                ->whereNotNull('first_reading')
+                ->whereNotNull('last_reading')
+                ->where('status', ManagerStatusEnum::ACTIVE)
+                ->orderByDesc('last_reading')
+                ->limit(10)
+            )
             ->heading(__('ui.card_reading_list'))
             ->description(__('ui.last_10_records'))
             ->paginated(false)

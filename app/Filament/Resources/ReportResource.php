@@ -8,6 +8,7 @@ use App\Filament\Resources\ReportResource\RelationManagers;
 use App\Models\Employee;
 use App\Models\Manager;
 use App\Models\Report;
+use App\Models\Scopes\AuthorizedReportScope;
 use App\Models\Staff;
 use Carbon\Carbon;
 use Filament\Forms;
@@ -41,26 +42,37 @@ class ReportResource extends Resource
         return __('ui.report_management');
     }
 
+//    public static function getNavigationBadge(): ?string
+//    {
+//        $hasPermission = auth()->user()->hasRole('super_admin') || auth()->user()->can('view_all_reports');
+//
+//        if ($hasPermission) {
+//            $count = Report::count();
+//            return $count > 0 ? (string)$count : null;
+//        } else {
+//            $manager = Manager::where('employee_id', auth()->user()->employee_id)->first();
+//            if (! $manager) {
+//                return null;
+//            } else {
+//                $employeeIds = Staff::where('manager_id', $manager->id)->pluck('employee_id');
+//                $tcNos = Employee::whereIn('id', $employeeIds)
+//                    ->where('status', ManagerStatusEnum::ACTIVE)
+//                    ->pluck('tc_no');
+//                $count = Report::whereIn('tc_no', $tcNos)->count();
+//                return $count > 0 ? (string)$count : null;
+//            }
+//        }
+//    }
+
+    public static function getEloquentQuery(): Builder
+    {
+        return AuthorizedReportScope::apply(parent::getEloquentQuery(), auth()->user());
+    }
+
     public static function getNavigationBadge(): ?string
     {
-        $hasPermission = auth()->user()->hasRole('super_admin') || auth()->user()->can('view_all_reports');
-
-        if ($hasPermission) {
-            $count = Report::count();
-            return $count > 0 ? (string)$count : null;
-        } else {
-            $manager = Manager::where('employee_id', auth()->user()->employee_id)->first();
-            if (! $manager) {
-                return null;
-            } else {
-                $employeeIds = Staff::where('manager_id', $manager->id)->pluck('employee_id');
-                $tcNos = Employee::whereIn('id', $employeeIds)
-                    ->where('status', ManagerStatusEnum::ACTIVE)
-                    ->pluck('tc_no');
-                $count = Report::whereIn('tc_no', $tcNos)->count();
-                return $count > 0 ? (string)$count : null;
-            }
-        }
+        $count = static::getEloquentQuery()->count();
+        return $count > 0 ? (string) $count : null;
     }
 
     protected static ?int $navigationSort = 2;

@@ -16,6 +16,7 @@ class Employee extends Model
         'tc_no',
         'first_name',
         'last_name',
+        'email',
         'status',
         'create_time',
         'update_time',
