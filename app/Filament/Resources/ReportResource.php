@@ -71,7 +71,7 @@ class ReportResource extends Resource
 
     public static function getNavigationBadge(): ?string
     {
-        $count = static::getEloquentQuery()->count();
+        $count = AuthorizedReportScope::apply(Report::query(), auth()->user())->count();
         return $count > 0 ? (string) $count : null;
     }
 

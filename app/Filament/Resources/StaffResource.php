@@ -6,6 +6,8 @@ use App\Enums\ManagerStatusEnum;
 use App\Filament\Resources\ManagerResource\RelationManagers\StaffsRelationManager;
 use App\Filament\Resources\StaffResource\Pages;
 use App\Filament\Resources\StaffResource\RelationManagers;
+use App\Models\Manager;
+use App\Models\Scopes\AuthorizedStaffScope;
 use App\Models\Staff;
 use Filament\Forms;
 use Filament\Forms\Form;
@@ -39,26 +41,37 @@ class StaffResource extends Resource
         return __('ui.report_management');
     }
 
+    public static function getEloquentQuery(): Builder
+    {
+        return AuthorizedStaffScope::apply(parent::getEloquentQuery(), auth()->user());
+    }
+
     public static function getNavigationBadge(): ?string
     {
-        $hasPermission = auth()->user()->hasRole('super_admin') || auth()->user()->can('view_all_staff');
-
-        if ($hasPermission) {
-            $count = Staff::count();
-            return $count > 0 ? (string)$count : null;
-        } else {
-            $manager = \App\Models\Manager::where('employee_id', auth()->user()->employee_id)->first();
-            if (! $manager) {
-                return null;
-            } else {
-                $employeeIds = Staff::where('manager_id', $manager->id)->pluck('employee_id');
-                $count = \App\Models\Employee::whereIn('id', $employeeIds)
-                    ->where('status', \App\Enums\ManagerStatusEnum::ACTIVE)
-                    ->count();
-                return $count > 0 ? (string)$count : null;
-            }
-        }
+        $count = AuthorizedStaffScope::apply(Staff::query(), auth()->user())->count();
+        return $count > 0 ? (string) $count : null;
     }
+
+//    public static function getNavigationBadge(): ?string
+//    {
+//        $hasPermission = auth()->user()->hasRole('super_admin') || auth()->user()->can('view_all_staff');
+//
+//        if ($hasPermission) {
+//            $count = Staff::count();
+//            return $count > 0 ? (string)$count : null;
+//        } else {
+//            $manager = \App\Models\Manager::where('employee_id', auth()->user()->employee_id)->first();
+//            if (! $manager) {
+//                return null;
+//            } else {
+//                $employeeIds = Staff::where('manager_id', $manager->id)->pluck('employee_id');
+//                $count = \App\Models\Employee::whereIn('id', $employeeIds)
+//                    ->where('status', \App\Enums\ManagerStatusEnum::ACTIVE)
+//                    ->count();
+//                return $count > 0 ? (string)$count : null;
+//            }
+//        }
+//    }
 
     protected static ?int $navigationSort = 1;
 

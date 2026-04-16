@@ -9,6 +9,7 @@ use App\Filament\Resources\UserResource\Pages;
 use App\Filament\Resources\UserResource\RelationManagers;
 use App\Models\Employee;
 use App\Models\Report;
+use App\Models\Scopes\AuthorizedUserScope;
 use App\Models\User;
 use Filament\Forms;
 use Filament\Forms\Components\Fieldset;
@@ -40,31 +41,42 @@ class UserResource extends Resource
         return __('ui.panel_management');
     }
 
-    public static function getNavigationBadge(): ?string
-    {
-        if (auth()->user()->hasRole('super_admin') || auth()->user()->can('view_all_users')) {
-            return static::getModel()::where('id', '>', 1)->where('id', '!=', auth()->id())->count();
-        } else {
-            return static::getModel()::where('created_by', auth()->id())->where('id', '>', 1)->count();
-        }
-    }
-
     public static function getEloquentQuery(): \Illuminate\Database\Eloquent\Builder
     {
-        return parent::getEloquentQuery()->where(function ($query) {
-
-            $query
-                ->where('id', '!=', auth()->id())
-                ->where('id', '>', 1); // exclude super admin user with ID 1
-
-            if (auth()->user()?->hasRole('super_admin') || auth()->user()?->can('view_all_users')
-            ) {
-                return $query;
-            }
-
-            return $query->where('created_by', auth()->id());
-        });
+        return AuthorizedUserScope::apply(parent::getEloquentQuery(), auth()->user());
     }
+
+    public static function getNavigationBadge(): ?string
+    {
+        $count = AuthorizedUserScope::apply(User::query(), auth()->user())->count();
+        return $count > 0 ? (string) $count : null;
+    }
+
+//    public static function getNavigationBadge(): ?string
+//    {
+//        if (auth()->user()->hasRole('super_admin') || auth()->user()->can('view_all_users')) {
+//            return static::getModel()::where('id', '>', 1)->where('id', '!=', auth()->id())->count();
+//        } else {
+//            return static::getModel()::where('created_by', auth()->id())->where('id', '>', 1)->count();
+//        }
+//    }
+//
+//    public static function getEloquentQuery(): \Illuminate\Database\Eloquent\Builder
+//    {
+//        return parent::getEloquentQuery()->where(function ($query) {
+//
+//            $query
+//                ->where('id', '!=', auth()->id())
+//                ->where('id', '>', 1); // exclude super admin user with ID 1
+//
+//            if (auth()->user()?->hasRole('super_admin') || auth()->user()?->can('view_all_users')
+//            ) {
+//                return $query;
+//            }
+//
+//            return $query->where('created_by', auth()->id());
+//        });
+//    }
 
     protected static ?int $navigationSort = 300;
 

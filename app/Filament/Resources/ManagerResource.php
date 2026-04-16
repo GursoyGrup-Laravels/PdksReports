@@ -9,6 +9,7 @@ use App\Filament\Resources\ManagerResource\RelationManagers;
 use App\Models\Employee;
 use App\Models\Manager;
 use App\Models\Report;
+use App\Models\Scopes\AuthorizedManagerScope;
 use App\Models\User;
 use Filament\Forms;
 use Filament\Forms\Components\Fieldset;
@@ -44,14 +45,25 @@ class ManagerResource extends Resource
         return __('ui.panel_management');
     }
 
+    public static function getEloquentQuery(): Builder
+    {
+        return AuthorizedManagerScope::apply(parent::getEloquentQuery(), auth()->user());
+    }
+
     public static function getNavigationBadge(): ?string
     {
-        if (auth()->user()->hasRole('super_admin') || auth()->user()->can('view_all_managers')) {
-            return static::getModel()::count();
-        } else {
-            return static::getModel()::where('created_by', auth()->id())->count();
-        }
+        $count = AuthorizedManagerScope::apply(Manager::query(), auth()->user())->count();
+        return $count > 0 ? (string) $count : null;
     }
+
+//    public static function getNavigationBadge(): ?string
+//    {
+//        if (auth()->user()->hasRole('super_admin') || auth()->user()->can('view_all_managers')) {
+//            return static::getModel()::count();
+//        } else {
+//            return static::getModel()::where('created_by', auth()->id())->count();
+//        }
+//    }
 
     protected static ?int $navigationSort = 200;
 
