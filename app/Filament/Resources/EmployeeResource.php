@@ -7,6 +7,9 @@ use App\Enums\ManagerStatusEnum;
 use App\Filament\Resources\EmployeeResource\Pages;
 use App\Filament\Resources\EmployeeResource\RelationManagers;
 use App\Models\Employee;
+use App\Models\Manager;
+use App\Models\Scopes\AuthorizedEmployeeScope;
+use App\Models\Staff;
 use Filament\Forms;
 use Filament\Forms\Form;
 use Filament\Resources\Resource;
@@ -37,26 +40,53 @@ class EmployeeResource extends Resource
         return __('ui.panel_management');
     }
 
+    public static function getEloquentQuery(): Builder
+    {
+        return AuthorizedEmployeeScope::apply(parent::getEloquentQuery(), auth()->user());
+    }
+
     public static function getNavigationBadge(): ?string
     {
-        $hasPermission = auth()->user()->hasRole('super_admin') || auth()->user()->can('view_all_employees');
+        $user = auth()->user();
 
-        if ($hasPermission) {
+        if ($user->hasRole('super_admin') || $user->can('view_all_employees')) {
             $count = Employee::count();
-            return $count > 0 ? (string)$count : null;
-        } else {
-            $manager = \App\Models\Manager::where('employee_id', auth()->user()->employee_id)->first();
-            if (! $manager) {
-                return null;
-            } else {
-                $employeeIds = \App\Models\Staff::where('manager_id', $manager->id)->pluck('employee_id');
-                $count = Employee::whereIn('id', $employeeIds)
-                    ->where('status', ManagerStatusEnum::ACTIVE)
-                    ->count();
-                return $count > 0 ? (string)$count : null;
-            }
+            return $count > 0 ? (string) $count : null;
         }
+
+        $manager = Manager::where('employee_id', $user->employee_id)->first();
+
+        if (! $manager) {
+            return null;
+        }
+
+        $count = Employee::whereIn('id', Staff::where('manager_id', $manager->id)->select('employee_id'))
+            ->where('status', ManagerStatusEnum::ACTIVE)
+            ->count();
+
+        return $count > 0 ? (string) $count : null;
     }
+
+//    public static function getNavigationBadge(): ?string
+//    {
+//        $hasPermission = auth()->user()->hasRole('super_admin') || auth()->user()->can('view_all_employees');
+//
+//        if ($hasPermission) {
+//            $count = Employee::count();
+//            return $count > 0 ? (string)$count : null;
+//        } else {
+//            $manager = \App\Models\Manager::where('employee_id', auth()->user()->employee_id)->first();
+//            if (! $manager) {
+//                return null;
+//            } else {
+//                $employeeIds = \App\Models\Staff::where('manager_id', $manager->id)->pluck('employee_id');
+//                $count = Employee::whereIn('id', $employeeIds)
+//                    ->where('status', ManagerStatusEnum::ACTIVE)
+//                    ->count();
+//                return $count > 0 ? (string)$count : null;
+//            }
+//        }
+//    }
 
     protected static ?int $navigationSort = 100;
 
