@@ -41,25 +41,25 @@ class Report extends Model
         return $this->belongsTo(Staff::class, 'employee_id', 'employee_id');
     }
 
-    public static function query()
-    {
-        $hasPermission = auth()->user()->hasRole('super_admin') || auth()->user()->can('view_all_reports');
-
-        if ($hasPermission) {
-            return parent::query();
-        } else {
-            $manager = Manager::where('employee_id', auth()->user()->employee_id)->first();
-
-            if (! $manager) {
-                return parent::query()->whereRaw('1 = 0');
-            } else {
-                $employeeIds = Staff::where('manager_id', $manager->id)->pluck('employee_id');
-                $tcNos = Employee::whereIn('id', $employeeIds)
-                    ->where('status', ManagerStatusEnum::ACTIVE)
-                    ->pluck('tc_no');
-
-                return parent::query()->whereIn('tc_no', $tcNos);
-            }
-        }
-    }
+//    public static function query()
+//    {
+//        $hasPermission = auth()->user()->hasRole('super_admin') || auth()->user()->can('view_all_reports');
+//
+//        if ($hasPermission) {
+//            return parent::query();
+//        } else {
+//            $manager = Manager::where('employee_id', auth()->user()->employee_id)->first();
+//
+//            if (! $manager) {
+//                return parent::query()->whereRaw('1 = 0');
+//            } else {
+//                $employeeIds = Staff::where('manager_id', $manager->id)->pluck('employee_id');
+//                $tcNos = Employee::whereIn('id', $employeeIds)
+//                    ->where('status', ManagerStatusEnum::ACTIVE)
+//                    ->pluck('tc_no');
+//
+//                return parent::query()->whereIn('tc_no', $tcNos);
+//            }
+//        }
+//    }
 }
