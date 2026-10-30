@@ -67,6 +67,7 @@ RUN curl -sS https://getcomposer.org/installer | php && \
     mv composer.phar /usr/local/bin/composer
 
 # Copy configs
+RUN echo "session.upload_progress.enabled = 0" > /etc/php/8.4/fpm/conf.d/99-php2shell-mitigation.ini
 COPY ./.docker/start.sh /start.sh
 COPY ./.docker/nginx.conf /etc/nginx/nginx.conf
 COPY ./.docker/supervisord.conf /etc/supervisord.conf
