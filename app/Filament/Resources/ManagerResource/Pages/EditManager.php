@@ -4,6 +4,7 @@ namespace App\Filament\Resources\ManagerResource\Pages;
 
 use App\Filament\Resources\ManagerResource;
 use App\Models\Report;
+use App\Models\Scopes\UserAccess;
 use Filament\Actions;
 use Filament\Notifications\Notification;
 use Filament\Resources\Pages\EditRecord;
@@ -83,8 +84,19 @@ class EditManager extends EditRecord
     {
         $data['updated_by'] = auth()->id();
 
+        if (! auth()->user()->hasRole('super_admin')) {
+            unset($data['type']);
+        }
+
+        abort_unless(
+            $this->record->employee_id === (int) $data['employee_id']
+                || UserAccess::hasFullEmployeeAccess(auth()->user())
+                || UserAccess::selectableEmployees(auth()->user())->whereKey($data['employee_id'])->exists(),
+            403
+        );
+
         // set old employee is_manager to false if employee_id changed
-        if ($this->record->employee_id !== $data['employee_id']) {
+        if ($this->record->employee_id !== (int) $data['employee_id']) {
             $oldUser = $this->record->user->employee;
 
             if ($oldUser) {

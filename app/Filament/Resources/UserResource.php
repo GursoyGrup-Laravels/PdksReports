@@ -10,6 +10,7 @@ use App\Filament\Resources\UserResource\RelationManagers;
 use App\Models\Employee;
 use App\Models\Report;
 use App\Models\Scopes\AuthorizedUserScope;
+use App\Models\Scopes\UserAccess;
 use App\Models\User;
 use Filament\Forms;
 use Filament\Forms\Components\Fieldset;
@@ -91,8 +92,7 @@ class UserResource extends Resource
                                     ->searchable()
                                     ->preload()
                                     ->options(function (callable $get, $livewire) {
-                                        $query = Employee::query()
-                                            ->where('status', ManagerStatusEnum::ACTIVE)
+                                        $query = UserAccess::selectableEmployees(auth()->user())
                                             ->orderBy('first_name');
 
                                         $currentRecord = $livewire->getRecord();
@@ -121,7 +121,7 @@ class UserResource extends Resource
                                     ->live()
                                     ->afterStateUpdated(function (callable $get, callable $set, $state) {
                                         if ($state) {
-                                            $employee = Employee::find($state);
+                                            $employee = UserAccess::selectableEmployees(auth()->user())->find($state);
                                             $set('email', $employee?->email);
                                         } else {
                                             $set('email', null);
@@ -181,7 +181,12 @@ class UserResource extends Resource
                                 Forms\Components\Select::make('roles')
                                     ->label(__('ui.roles'))
                                     ->prefixIcon('heroicon-o-shield-check')
-                                    ->relationship('roles', 'name')
+                                    ->relationship('roles', 'name', fn ($query) => $query->whereIn('roles.id', auth()->user()->grantableRoleIds()))
+                                    ->rule(fn (): \Closure => function (string $attribute, mixed $value, \Closure $fail): void {
+                                        if (array_diff(array_map('intval', (array) $value), auth()->user()->grantableRoleIds()) !== []) {
+                                            $fail(__('ui.role_not_allowed'));
+                                        }
+                                    })
                                     ->multiple()
                                     ->preload()
                                     ->searchable()
@@ -368,8 +373,17 @@ class UserResource extends Resource
         ];
     }
 
+    public static function canEdit(Model $record): bool
+    {
+        return parent::canEdit($record) && auth()->user()->canManageUser($record);
+    }
+
     public static function canDelete(Model $record): bool
     {
+        if (! auth()->user()->canManageUser($record)) {
+            return false;
+        }
+
         // Check if the user is trying to delete themselves
         if ($record->id === auth()->id()) {
             return false;

@@ -4,7 +4,6 @@ namespace App\Filament\Resources\UserResource\Pages;
 
 use App\Enums\ManagerStatusEnum;
 use App\Filament\Resources\UserResource;
-use App\Models\User;
 use Filament\Actions;
 use Filament\Resources\Components\Tab;
 use Filament\Resources\Pages\ListRecords;
@@ -23,69 +22,24 @@ class ListUsers extends ListRecords
     public function getTabs(): array
     {
         $tabs = [];
-        $canViewAllUsers = auth()->user()->hasRole('super_admin') || auth()->user()->can('view_all_users');
-
-        // "All" tab
-        $allQuery = User::query()
-            ->where('id', '>', 1)
-            ->where('id', '!=', auth()->id());
-        if (!$canViewAllUsers) {
-            $allQuery->where('created_by', auth()->id());
-        }
+        $count = fn (?ManagerStatusEnum $status = null): int => UserResource::getEloquentQuery()
+            ->when($status, fn ($query) => $query->where('status', $status))
+            ->count();
 
         $tabs['all'] = Tab::make(__('ui.all'))
-            ->badge($allQuery->count())
-            ->modifyQueryUsing(function ($query) use ($canViewAllUsers) {
-                $query->where('id', '>', 1)->where('id', '!=', auth()->id());
-                if (!$canViewAllUsers) {
-                    $query->where('created_by', auth()->id());
-                }
-                return $query;
-            });
-
-        // "Active" tab
-        $activeQuery = User::query()->where('status', ManagerStatusEnum::ACTIVE)
-            ->where('id', '>', 1)
-            ->where('id', '!=', auth()->id());
-        if (!$canViewAllUsers) {
-            $activeQuery->where('created_by', auth()->id());
-        }
+            ->badge($count());
 
         $tabs['active'] = Tab::make(__('ui.active'))
-            ->badge($activeQuery->count())
+            ->badge($count(ManagerStatusEnum::ACTIVE))
             ->badgeIcon('heroicon-o-check-circle')
             ->badgeColor('success')
-            ->modifyQueryUsing(function ($query) use ($canViewAllUsers) {
-                $query->where('status', ManagerStatusEnum::ACTIVE)
-                    ->where('id', '>', 1)
-                    ->where('id', '!=', auth()->id());
-                if (!$canViewAllUsers) {
-                    $query->where('created_by', auth()->id());
-                }
-                return $query;
-            });
-
-        // "Inactive" tab
-        $inactiveQuery = User::query()->where('status', ManagerStatusEnum::INACTIVE)
-            ->where('id', '>', 1)
-            ->where('id', '!=', auth()->id());
-        if (!$canViewAllUsers) {
-            $inactiveQuery->where('created_by', auth()->id());
-        }
+            ->modifyQueryUsing(fn ($query) => $query->where('status', ManagerStatusEnum::ACTIVE));
 
         $tabs['inactive'] = Tab::make(__('ui.inactive'))
-            ->badge($inactiveQuery->count())
+            ->badge($count(ManagerStatusEnum::INACTIVE))
             ->badgeIcon('heroicon-o-x-circle')
             ->badgeColor('danger')
-            ->modifyQueryUsing(function ($query) use ($canViewAllUsers) {
-                $query->where('status', ManagerStatusEnum::INACTIVE)
-                    ->where('id', '>', 1)
-                    ->where('id', '!=', auth()->id());
-                if (!$canViewAllUsers) {
-                    $query->where('created_by', auth()->id());
-                }
-                return $query;
-            });
+            ->modifyQueryUsing(fn ($query) => $query->where('status', ManagerStatusEnum::INACTIVE));
 
         return $tabs;
     }

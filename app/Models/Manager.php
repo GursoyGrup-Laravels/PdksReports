@@ -4,6 +4,7 @@ namespace App\Models;
 
 use App\Enums\ActiveStatusEnum;
 use App\Enums\ManagerStatusEnum;
+use App\Enums\ManagerTypeEnum;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Notifications\Notifiable;
 use Illuminate\Database\Eloquent\SoftDeletes;
@@ -15,14 +16,20 @@ class Manager extends Model Implements HasMedia
 
     protected $fillable = [
         'employee_id',
+        'type',
         'status',
         'created_by',
         'updated_by',
         'deleted_by',
     ];
 
+    protected $attributes = [
+        'type' => 0,
+    ];
+
     protected $casts = [
         'status' => ManagerStatusEnum::class,
+        'type' => ManagerTypeEnum::class,
     ];
 
     public function employee()
@@ -35,6 +42,11 @@ class Manager extends Model Implements HasMedia
     public function user()
     {
         return $this->belongsTo(User::class, 'employee_id', 'employee_id');
+    }
+
+    public function departments(): \Illuminate\Database\Eloquent\Relations\BelongsToMany
+    {
+        return $this->belongsToMany(Department::class);
     }
 
     public function staffs()

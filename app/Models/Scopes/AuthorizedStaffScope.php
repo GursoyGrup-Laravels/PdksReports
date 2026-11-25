@@ -2,7 +2,6 @@
 
 namespace App\Models\Scopes;
 
-use App\Models\Manager;
 use App\Models\User;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
@@ -19,7 +18,7 @@ class AuthorizedStaffScope
             return $query;
         }
 
-        $manager = Manager::where('employee_id', $user->employee_id)->first();
+        $manager = UserAccess::manager($user);
 
         if (! $manager) {
             return $query->whereRaw('1 = 0');

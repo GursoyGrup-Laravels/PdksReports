@@ -3,10 +3,7 @@
 namespace App\Models\Scopes;
 
 use App\Enums\ManagerStatusEnum;
-use App\Models\Employee;
-use App\Models\Manager;
 use App\Models\Report;
-use App\Models\Staff;
 use App\Models\User;
 use Illuminate\Database\Eloquent\Builder;
 
@@ -18,11 +15,11 @@ class AuthorizedReportScope
             return $query;
         }
 
-        $employeeIds = once(fn () => static::resolveEmployeeIds($user));
+        [$employeeIds, $departmentIds] = once(fn () => [static::resolveEmployeeIds($user), UserAccess::departmentIds($user)]);
 
-        return $employeeIds->isEmpty()
-            ? $query->whereRaw('1 = 0')
-            : $query->whereIn('employee_id', $employeeIds->toArray());
+        return $query->where(fn (Builder $query) => $query
+            ->whereIn('reports.employee_id', $employeeIds)
+            ->orWhereIn('reports.department_id', $departmentIds));
     }
 
     /**
@@ -60,17 +57,7 @@ class AuthorizedReportScope
             $employeeIds->push($user->employee->id);
         }
 
-        $manager = Manager::where('employee_id', $user->employee_id)->first();
-
-        if ($manager) {
-            $staffEmployeeIds = Employee::where('status', ManagerStatusEnum::ACTIVE)
-                ->whereIn('id',
-                    Staff::where('manager_id', $manager->id)->select('employee_id')
-                )
-                ->pluck('id');
-
-            $employeeIds = $employeeIds->merge($staffEmployeeIds)->unique();
-        }
+        $employeeIds = $employeeIds->merge(UserAccess::staffIds($user))->unique()->values();
 
         return $employeeIds;
     }

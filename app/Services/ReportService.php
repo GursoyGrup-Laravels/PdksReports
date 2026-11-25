@@ -337,9 +337,11 @@ class ReportService
             ->whereIn('tc_no', $tcNos)
             ->pluck('id', 'tc_no');
 
+        $departments = app(DepartmentService::class)->idsByName();
         $rows = [];
 
         foreach ($buffer as $index => $row) {
+            $row['department_id'] = $departments[trim((string) $row['department_name'])] ?? null;
             $row['employee_id'] = $byEmpCode->get($empCodes[$index])
                 ?? ($row['tc_no'] !== null ? $byTcNo->get($row['tc_no']) : null);
 
@@ -444,6 +446,7 @@ class ReportService
             ['external_id'], // eşsiz alan
             [
                 'employee_id',
+                'department_id',
                 'tc_no',
                 'full_name',
                 'department_name',

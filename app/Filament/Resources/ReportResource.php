@@ -101,7 +101,7 @@ class ReportResource extends Resource
                 Tables\Columns\TextColumn::make('emp_code')
                     ->label(__('ui.emp_code'))
                     ->searchable(query: fn (Builder $query, string $search): Builder => $query->where('external_id', 'like', addcslashes($search, '\\%_') . '%'))
-                    ->toggleable(),
+                    ->toggleable(isToggledHiddenByDefault: true),
                 Tables\Columns\TextColumn::make('tc_no')
                     ->visible(fn ($record) => auth()->user()->hasRole('super_admin') || auth()->user()->can('view_tc_no'))
                     ->label(__('ui.tc_no'))
@@ -159,7 +159,8 @@ class ReportResource extends Resource
                     ->multiple()
                     ->preload()
                     ->searchable()
-                    ->options(fn () => Report::query()
+                    ->options(fn () => AuthorizedReportScope::apply(Report::query(), auth()->user())
+                        ->whereNotNull('department_name')
                         ->distinct()
                         ->orderBy('department_name')
                         ->pluck('department_name', 'department_name')

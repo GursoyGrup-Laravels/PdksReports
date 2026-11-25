@@ -6,6 +6,8 @@ use App\Enums\BooleanStatusEnum;
 use App\Enums\ManagerStatusEnum;
 use App\Models\Employee;
 use App\Models\Report;
+use App\Models\Scopes\AuthorizedEmployeeScope;
+use App\Models\Scopes\UserAccess;
 use Filament\Forms;
 use Filament\Forms\Components\Fieldset;
 use Filament\Forms\Form;
@@ -67,11 +69,7 @@ class StaffsRelationManager extends RelationManager
                                                 ->pluck('employee_id')
                                                 ->toArray();
 
-                                            return \App\Models\Employee::query()
-                                                ->where('status', \App\Enums\ManagerStatusEnum::ACTIVE)
-                                                // Eğer yeni kayıt ekleniyorsa sadece staff olmayanlar
-                                                // Ama update yapılıyorsa mevcut seçili personel dahil edilmeli
-                                                //->when(!$currentEmployeeId, fn($q) => $q->where('is_staff', \App\Enums\BooleanStatusEnum::NO))
+                                            return UserAccess::selectableEmployees(auth()->user())
                                                 ->when($managerEmployeeId, fn($q) => $q->where('id', '!=', $managerEmployeeId))
                                                 // Zaten bu manager'a eklenmiş olanları hariç tut (güncelleme durumunda mevcut kayıt hariç)
                                                 ->whereNotIn('id', array_diff($existingStaffIds, [$currentEmployeeId]))
@@ -119,7 +117,10 @@ class StaffsRelationManager extends RelationManager
         return $table
             ->recordTitleAttribute('id')
             ->defaultSort('updated_at', 'desc')
-            ->modifyQueryUsing(fn (Builder $query) => $query->orderBy('created_at', 'desc'))
+            ->modifyQueryUsing(fn (Builder $query) => $query
+                ->when(! UserAccess::hasFullEmployeeAccess(auth()->user()), fn (Builder $query) => $query
+                    ->whereIn('employee_id', AuthorizedEmployeeScope::apply(Employee::query(), auth()->user())->select('employees.id')))
+                ->orderBy('created_at', 'desc'))
             ->paginated([5, 10, 25, 50])
             ->columns([
                 Tables\Columns\TextColumn::make('employee.emp_code')
@@ -176,6 +177,8 @@ class StaffsRelationManager extends RelationManager
             ->headerActions([
                 Tables\Actions\CreateAction::make()
                     ->mutateFormDataUsing(function (array $data): array {
+                        abort_unless(UserAccess::selectableEmployees(auth()->user())->whereKey($data['employee_id'])->exists(), 403);
+
                         $data['created_by'] = auth()->id();
                         $data['manager_id'] = $this->ownerRecord->employee_id;
 
@@ -193,6 +196,8 @@ class StaffsRelationManager extends RelationManager
             ->actions([
                 Tables\Actions\EditAction::make()
                     ->mutateFormDataUsing(function (array $data, Model $record): array {
+
+                        abort_unless(UserAccess::selectableEmployees(auth()->user())->whereKey($data['employee_id'])->exists(), 403);
 
                         $data['updated_by'] = auth()->id();
 

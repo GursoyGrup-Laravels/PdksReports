@@ -2,6 +2,7 @@
 
 namespace App\Models\Scopes;
 
+use App\Models\Employee;
 use App\Models\User;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
@@ -24,6 +25,7 @@ class AuthorizedUserScope
             return $query;
         }
 
-        return $query->where('created_by', $user->id);
+        return $query->where('created_by', $user->id)
+            ->whereIn('employee_id', AuthorizedEmployeeScope::apply(Employee::query(), $user)->select('employees.id'));
     }
 }

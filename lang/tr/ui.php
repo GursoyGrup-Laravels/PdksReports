@@ -1,10 +1,16 @@
 <?php
 
 return [
+    'role_not_allowed' => 'Bu rolü verme yetkiniz yok.',
+    'authorized_person' => 'Yetkili',
+    'authorized_persons' => 'Yetkililer',
+    'hr' => 'İK',
+    'hr_departments_hint' => 'İK yalnızca seçilen departmanların personelini ve raporlarını görür.',
+    'unnamed_department' => 'Departman :id',
     'reports_badge_tooltip' => 'Bugün: okutan / aktif personel',
     'employees_badge_tooltip' => 'Aktif personel (toplam :total)',
     'staff_badge_tooltip' => 'Aktif çalışan sayısı',
-    'managers_badge_tooltip' => 'Aktif amir sayısı',
+    'managers_badge_tooltip' => 'Aktif yetkili sayısı',
     'expected_today' => 'Bugün Beklenen',
     'active_employees' => 'Aktif personel',
     'checked_percent' => 'Aktif personelin %:percent kadarı',

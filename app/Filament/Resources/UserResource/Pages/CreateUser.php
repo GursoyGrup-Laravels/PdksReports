@@ -5,6 +5,7 @@ namespace App\Filament\Resources\UserResource\Pages;
 use App\Filament\Resources\UserResource;
 use App\Models\Employee;
 use App\Models\Report;
+use App\Models\Scopes\UserAccess;
 use App\Notifications\UserCreated;
 use Filament\Actions;
 use Filament\Resources\Pages\CreateRecord;
@@ -18,6 +19,8 @@ class CreateUser extends CreateRecord
 
     protected function mutateFormDataBeforeCreate(array $data): array
     {
+        abort_unless(UserAccess::selectableEmployees(auth()->user())->whereKey($data['employee_id'])->exists(), 403);
+
         $data['created_by'] = auth()->user()->id;
         $data['tc_no'] = $data['employee_id'];
 
