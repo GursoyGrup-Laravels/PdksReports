@@ -161,6 +161,62 @@ class EmpCodeSyncTest extends TestCase
         $this->assertSame(0, Report::count());
     }
 
+    public function test_month_import_previews_then_fills_people_without_tc(): void
+    {
+        $this->travelTo('2026-11-25 12:00:00');
+        $this->syncEmployees([$this->person('1', '11111111110'), $this->person('2', '')]);
+        DB::table('reports')->insert(['employee_id' => Employee::firstWhere('emp_code', '1')->id, 'external_id' => '1_20261101', 'date' => '2026-11-01', 'department_name' => 'Eski', 'first_reading' => '2026-11-01 09:00:00', 'last_reading' => '2026-11-01 12:00:00', 'status' => 0]);
+        $lines = [
+            $this->importLine('1', '01', '10:00:00', '18:00:00'), $this->importLine('2', '01'),
+            $this->importLine('1', '02'), $this->importLine('2', '02', '08:30:00', '17:30:00'),
+        ];
+        $file = $this->importFile("\xFF\xFE" . mb_convert_encoding(implode("\r\n", $lines), 'UTF-16LE', 'UTF-8'));
+
+        $this->artisan('reports:import', ['file' => $file])->assertSuccessful();
+        $this->assertSame(1, Report::count());
+
+        $this->artisan('reports:import', ['file' => $file, '--write' => true])->assertSuccessful();
+        $this->artisan('reports:import', ['file' => $file, '--write' => true])->assertSuccessful();
+        $this->assertSame(4, Report::count());
+        $old = Report::firstWhere('external_id', '1_20261101');
+        $this->assertSame(['2026-11-01 09:00:00', '2026-11-01 18:00:00', '09:00:00', 'Eski'], [$old->first_reading, $old->last_reading, $old->working_time, $old->department_name]);
+        $this->assertNull(Report::firstWhere('external_id', '2_20261101')->first_reading);
+        $this->assertSame('ŞİĞ Birimi', Report::firstWhere('external_id', '2_20261102')->department_name);
+    }
+
+    public function test_month_import_rejects_damaged_files_without_writing(): void
+    {
+        $this->travelTo('2026-11-25 12:00:00');
+        $this->syncEmployees([$this->person('1', ''), $this->person('2', '')]);
+        $one = $this->importLine('1', '01');
+
+        foreach ([
+            '', $one . "\n" . $one, $one . "\tfazla", $one . "\n" . $this->importLine('1', '03'),
+            $one . "\n" . $this->importLine('2', '01') . "\n" . $this->importLine('1', '02'),
+            $this->importLine('1', '25'), str_replace("\t2026-11-01\t", "\t2026-11-02\t", $one),
+            $this->importLine('1', '01', '10:00:00', 'bozuk'), $one . "\xFF",
+        ] as $content) {
+            $this->artisan('reports:import', ['file' => $this->importFile($content), '--write' => true])->assertFailed();
+        }
+
+        $this->assertSame(0, Report::count());
+    }
+
+    private function importLine(string $empCode, string $day, ?string $first = null, ?string $last = null): string
+    {
+        $at = fn (?string $time): string => $time ? "2026-11-{$day} {$time}.000" : 'NULL';
+
+        return implode("\t", ["{$empCode}_202611{$day}", '', 'Test Kişi', 'ŞİĞ Birimi', 'NULL', "2026-11-{$day}", 'Gün', $at($first), $at($last), 'NULL', '0']);
+    }
+
+    private function importFile(string $content): string
+    {
+        $path = tempnam(sys_get_temp_dir(), 'imp');
+        file_put_contents($path, $content);
+
+        return $path;
+    }
+
     /**
      * @return array<string, mixed>
      */

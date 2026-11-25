@@ -104,7 +104,7 @@ class ReportService
      * @param  list<array<string, mixed>>  $rows
      * @param  array<string, int>  $stats
      */
-    private function handleRecentBatch(array $rows, array &$stats): void
+    private function handleRecentBatch(array $rows, array &$stats, bool $write = true): void
     {
         $existing = DB::table('reports')
             ->whereIn('external_id', array_column($rows, 'external_id'))
@@ -117,6 +117,11 @@ class ReportService
             $old = $existing->get($row['external_id']);
 
             if ($old) {
+                if ($row['first_reading'] === null) {
+                    $stats['degismeyen']++;
+                    continue;
+                }
+
                 $row['first_reading'] = min($row['first_reading'], $old->first_reading ?? $row['first_reading']);
                 $row['last_reading'] = max($row['last_reading'], $old->last_reading ?? $row['last_reading']);
 
@@ -132,9 +137,111 @@ class ReportService
             $changed[] = $row;
         }
 
-        if ($changed !== []) {
+        if ($write && $changed !== []) {
             DB::table('reports')->upsert($changed, ['external_id'], ['first_reading', 'last_reading', 'working_time', 'updated_at']);
         }
+    }
+
+    /**
+     * Sekmeyle ayrılmış view çıktısını aktarır. Dosyanın tamamı doğrulanmadan hiçbir satır yazılmaz;
+     * mevcut saatler silinmez veya daraltılmaz.
+     *
+     * @return array{eklenen: int, tamamlanan: int, degismeyen: int, gun: int, satir: int, personelsiz: int, basan: int}
+     */
+    public function importFile(string $path, bool $write): array
+    {
+        $rows = $this->readImportFile($path);
+        $dates = array_column($rows, 'date');
+        $stats = [
+            'eklenen' => 0, 'tamamlanan' => 0, 'degismeyen' => 0,
+            'gun' => count(array_unique($dates)), 'satir' => count($rows), 'personelsiz' => 0,
+            'basan' => count(array_filter(array_column($rows, 'first_reading'))),
+        ];
+
+        $apply = function () use ($rows, &$stats, $write): void {
+            foreach (array_chunk($rows, 1000) as $chunk) {
+                $resolved = $this->resolveEmployees($chunk);
+                $stats['personelsiz'] += count($chunk) - count($resolved);
+                $this->handleRecentBatch($resolved, $stats, $write);
+            }
+        };
+
+        $write ? DB::transaction($apply) : $apply();
+        Log::info($write ? 'Rapor dosyası aktarıldı' : 'Rapor dosyası önizlendi', $stats);
+
+        return $stats;
+    }
+
+    /**
+     * @return list<array<string, mixed>>
+     */
+    private function readImportFile(string $path): array
+    {
+        if (! is_file($path) || ! is_readable($path)) {
+            throw new \Exception('Dosya okunamadı.');
+        }
+
+        $content = (string) file_get_contents($path);
+
+        if (str_starts_with($content, "\xFF\xFE")) {
+            $content = mb_convert_encoding(substr($content, 2), 'UTF-8', 'UTF-16LE');
+        }
+
+        $content = preg_replace('/^\xEF\xBB\xBF/', '', $content);
+
+        if (! mb_check_encoding($content, 'UTF-8')) {
+            throw new \Exception('Dosya UTF-8 veya Unicode olmalı.');
+        }
+
+        $columns = ['external_id', 'tc_no', 'full_name', 'department_name', 'position_name', 'date', 'day', 'first_reading', 'last_reading', 'working_time', 'status'];
+        $rows = [];
+        $perDay = [];
+
+        foreach (preg_split('/\r\n|\n|\r/', $content) as $number => $line) {
+            if (trim($line) === '' || str_starts_with($line, "external_id\t")) {
+                continue;
+            }
+
+            $values = array_map(fn (string $value): ?string => in_array(trim($value), ['NULL', ''], true) ? null : trim($value), explode("\t", $line));
+            $label = 'satır ' . ($number + 1);
+
+            if (count($values) !== count($columns)) {
+                throw new \Exception("Kolon sayısı hatalı: {$label}");
+            }
+
+            $data = array_combine($columns, $values);
+            $row = $this->formatData($data);
+            $date = $row ? Carbon::createFromFormat('!Ymd', substr($row['external_id'], -8))->toDateString() : null;
+
+            if ($row === null || substr((string) $data['date'], 0, 10) !== $date || isset($rows[$row['external_id']])) {
+                throw new \Exception("Geçersiz veya tekrarlı kayıt: {$label}");
+            }
+
+            if ($date >= today()->toDateString() || $date < today()->subDays(90)->toDateString()) {
+                throw new \Exception("Tarih aralık dışında: {$label}");
+            }
+
+            foreach (['first_reading', 'last_reading'] as $field) {
+                if (($data[$field] !== null) !== ($data['first_reading'] !== null) || ($data[$field] !== null && ! str_starts_with((string) $row[$field], $date))) {
+                    throw new \Exception("Okutma saati geçersiz: {$label}");
+                }
+            }
+
+            $row['date'] = $date;
+            $row['working_time'] = $row['first_reading'] === null ? null : self::workingTime($row['first_reading'], $row['last_reading']);
+            $rows[$row['external_id']] = $row;
+            $perDay[$date] = ($perDay[$date] ?? 0) + 1;
+        }
+
+        if ($perDay === [] || count(array_unique($perDay)) !== 1) {
+            throw new \Exception('Günlerin satır sayısı eşit değil; dosya eksik olabilir.');
+        }
+
+        if (count($perDay) !== (int) Carbon::parse(min(array_keys($perDay)))->diffInDays(Carbon::parse(max(array_keys($perDay)))) + 1) {
+            throw new \Exception('Dosyada eksik gün var.');
+        }
+
+        return array_values($rows);
     }
 
     private static function workingTime(string $first, string $last): string
