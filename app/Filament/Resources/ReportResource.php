@@ -71,8 +71,14 @@ class ReportResource extends Resource
 
     public static function getNavigationBadge(): ?string
     {
-        $count = AuthorizedReportScope::apply(Report::query(), auth()->user())->count();
-        return $count > 0 ? (string) $count : null;
+        $counts = AuthorizedReportScope::todayCounts(auth()->user());
+
+        return $counts['expected'] > 0 ? "{$counts['checked']} / {$counts['expected']}" : null;
+    }
+
+    public static function getNavigationBadgeTooltip(): ?string
+    {
+        return __('ui.reports_badge_tooltip');
     }
 
     protected static ?int $navigationSort = 2;

@@ -1,6 +1,14 @@
 <?php
 
 return [
+    'reports_badge_tooltip' => 'Aujourd\'hui : pointés / employés actifs',
+    'employees_badge_tooltip' => 'Employés actifs (total :total)',
+    'staff_badge_tooltip' => 'Nombre d\'employés actifs',
+    'managers_badge_tooltip' => 'Nombre de responsables actifs',
+    'expected_today' => 'Attendus aujourd\'hui',
+    'active_employees' => 'Employés actifs',
+    'checked_percent' => ':percent % des employés actifs',
+    'not_checked_hint' => 'Y compris congés et repos',
     'emp_code' => 'Matricule',
     'name' => 'Nom',
     'email' => 'E-mail',

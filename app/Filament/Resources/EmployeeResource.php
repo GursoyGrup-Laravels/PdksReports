@@ -50,7 +50,7 @@ class EmployeeResource extends Resource
         $user = auth()->user();
 
         if ($user->hasRole('super_admin') || $user->can('view_all_employees')) {
-            $count = Employee::count();
+            $count = Employee::where('status', ManagerStatusEnum::ACTIVE)->count();
             return $count > 0 ? (string) $count : null;
         }
 
@@ -65,6 +65,13 @@ class EmployeeResource extends Resource
             ->count();
 
         return $count > 0 ? (string) $count : null;
+    }
+
+    public static function getNavigationBadgeTooltip(): ?string
+    {
+        return __('ui.employees_badge_tooltip', [
+            'total' => AuthorizedEmployeeScope::apply(Employee::query(), auth()->user())->count(),
+        ]);
     }
 
 //    public static function getNavigationBadge(): ?string

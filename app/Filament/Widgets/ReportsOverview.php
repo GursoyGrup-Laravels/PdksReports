@@ -2,12 +2,9 @@
 
 namespace App\Filament\Widgets;
 
-use App\Enums\ManagerStatusEnum;
-use App\Models\Report;
 use App\Models\Scopes\AuthorizedReportScope;
 use Filament\Widgets\StatsOverviewWidget as BaseWidget;
 use Filament\Widgets\StatsOverviewWidget\Stat;
-use Illuminate\Support\Carbon;
 
 class ReportsOverview extends BaseWidget
 {
@@ -18,29 +15,25 @@ class ReportsOverview extends BaseWidget
 
     protected function getStats(): array
     {
-        $today = Carbon::today()->toDateString();
-
-        $reportQuery = AuthorizedReportScope::apply(Report::query(), auth()->user());
-
-        $todayReports    = (clone $reportQuery)->whereDate('date', $today);
-        $allCount        = (clone $reportQuery)->count();
-        $checkedCount    = (clone $todayReports)->whereNotNull('first_reading')->where('status', ManagerStatusEnum::ACTIVE)->count();
-        $notCheckedCount = (clone $todayReports)->whereNull('first_reading')->whereNull('last_reading')->where('status', ManagerStatusEnum::ACTIVE)->count();
+        $counts = AuthorizedReportScope::todayCounts(auth()->user());
+        $percent = $counts['expected'] > 0 ? round($counts['checked'] * 100 / $counts['expected']) : 0;
 
         return [
-            Stat::make(__('ui.all'), $allCount)
+            Stat::make(__('ui.expected_today'), $counts['expected'])
                 ->icon('heroicon-o-identification')
+                ->description(__('ui.active_employees'))
+                ->descriptionIcon('heroicon-o-user-group')
                 ->descriptionColor('primary'),
 
-            Stat::make(__('ui.daily_report'), $checkedCount)
+            Stat::make(__('ui.checked'), $counts['checked'])
                 ->icon('heroicon-o-identification')
-                ->description(__('ui.checked'))
+                ->description(__('ui.checked_percent', ['percent' => $percent]))
                 ->descriptionIcon('heroicon-o-finger-print')
                 ->descriptionColor('success'),
 
-            Stat::make(__('ui.daily_report'), $notCheckedCount)
+            Stat::make(__('ui.not_checked'), $counts['not_checked'])
                 ->icon('heroicon-o-identification')
-                ->description(__('ui.not_checked'))
+                ->description(__('ui.not_checked_hint'))
                 ->descriptionIcon('heroicon-o-no-symbol')
                 ->descriptionColor('warning'),
         ];

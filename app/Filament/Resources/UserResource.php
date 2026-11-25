@@ -46,12 +46,6 @@ class UserResource extends Resource
         return AuthorizedUserScope::apply(parent::getEloquentQuery(), auth()->user());
     }
 
-    public static function getNavigationBadge(): ?string
-    {
-        $count = AuthorizedUserScope::apply(User::query(), auth()->user())->count();
-        return $count > 0 ? (string) $count : null;
-    }
-
 //    public static function getNavigationBadge(): ?string
 //    {
 //        if (auth()->user()->hasRole('super_admin') || auth()->user()->can('view_all_users')) {
