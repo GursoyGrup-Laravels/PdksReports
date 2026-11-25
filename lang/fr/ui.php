@@ -1,6 +1,12 @@
 <?php
 
 return [
+    'role_not_allowed' => 'Vous ne pouvez pas attribuer ce rôle.',
+    'authorized_person' => 'Responsable',
+    'authorized_persons' => 'Responsables',
+    'hr' => 'RH',
+    'hr_departments_hint' => 'Le RH ne voit que les départements sélectionnés.',
+    'unnamed_department' => 'Département :id',
     'reports_badge_tooltip' => 'Aujourd\'hui : pointés / employés actifs',
     'employees_badge_tooltip' => 'Employés actifs (total :total)',
     'staff_badge_tooltip' => 'Nombre d\'employés actifs',

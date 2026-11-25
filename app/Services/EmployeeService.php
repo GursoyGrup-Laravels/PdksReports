@@ -11,6 +11,13 @@ use Illuminate\Support\Facades\Log;
 
 class EmployeeService
 {
+    public function __construct(private DepartmentService $departments) {}
+
+    /**
+     * @var array<int, int>
+     */
+    private array $departmentIds = [];
+
     /**
      * Personelleri emp_code üzerinden eşler; TC isteğe bağlıdır.
      *
@@ -30,6 +37,8 @@ class EmployeeService
         if (!is_array($employees)) {
             throw new \Exception('API verisi geçersiz veya boş geldi.');
         }
+
+        $this->departmentIds = $this->departments->syncFromEmployees($employees);
 
         $tcCounts = collect($employees)
             ->map(fn (array $data): ?string => $this->normalizeTcNo($data['nickname'] ?? null))
@@ -86,6 +95,13 @@ class EmployeeService
             Log::warning('Personel senkronizasyonunda atlanan kayıtlar', $skipped);
         }
 
+        try {
+            $this->departments->learnNames($employees);
+            $this->departments->fillReports();
+        } catch (\Throwable $e) {
+            Log::warning('Departman adları güncellenemedi', ['exception' => $e::class, 'mesaj' => $e->getMessage()]);
+        }
+
         return $count;
     }
 
@@ -118,6 +134,10 @@ class EmployeeService
             'create_time' => $this->toMysqlDate($data['create_time'] ?? null),
             'update_time' => $this->toMysqlDate($data['update_time'] ?? null),
         ];
+
+        if (is_numeric($data['department_id'] ?? null)) {
+            $attributes['department_id'] = $this->departmentIds[(int) $data['department_id']] ?? null;
+        }
 
         if ($tcNo !== null && strlen($tcNo) <= 11) {
             $attributes['tc_no'] = $tcNo;

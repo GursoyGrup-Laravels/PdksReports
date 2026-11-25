@@ -9,6 +9,7 @@ use App\Filament\Resources\EmployeeResource\RelationManagers;
 use App\Models\Employee;
 use App\Models\Manager;
 use App\Models\Scopes\AuthorizedEmployeeScope;
+use App\Models\Scopes\UserAccess;
 use App\Models\Staff;
 use Filament\Forms;
 use Filament\Forms\Form;
@@ -47,22 +48,7 @@ class EmployeeResource extends Resource
 
     public static function getNavigationBadge(): ?string
     {
-        $user = auth()->user();
-
-        if ($user->hasRole('super_admin') || $user->can('view_all_employees')) {
-            $count = Employee::where('status', ManagerStatusEnum::ACTIVE)->count();
-            return $count > 0 ? (string) $count : null;
-        }
-
-        $manager = Manager::where('employee_id', $user->employee_id)->first();
-
-        if (! $manager) {
-            return null;
-        }
-
-        $count = Employee::whereIn('id', Staff::where('manager_id', $manager->id)->select('employee_id'))
-            ->where('status', ManagerStatusEnum::ACTIVE)
-            ->count();
+        $count = UserAccess::selectableEmployees(auth()->user())->count();
 
         return $count > 0 ? (string) $count : null;
     }
@@ -126,6 +112,9 @@ class EmployeeResource extends Resource
                             $query->orderBy('first_name', $direction)->orderBy('last_name', $direction)
                         )
                         ->searchable(['first_name', 'last_name']),
+                Tables\Columns\TextColumn::make('department.display_name')
+                    ->label(__('ui.department'))
+                    ->toggleable(),
                 Tables\Columns\TextColumn::make('status')
                     ->label(__('ui.status'))
                     ->badge(),

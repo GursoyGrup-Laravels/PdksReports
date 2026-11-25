@@ -83,6 +83,38 @@ class User extends Authenticatable implements FilamentUser
         return $this->status->is(ManagerStatusEnum::ACTIVE);
     }
 
+    /**
+     * Kimse kendi izinlerinden fazlasını veya super_admin rolünü veremez.
+     */
+    public function canGrantRole(\Spatie\Permission\Models\Role $role): bool
+    {
+        if ($this->hasRole('super_admin')) {
+            return true;
+        }
+
+        return $role->name !== 'super_admin'
+            && $role->permissions->pluck('id')->diff($this->getAllPermissions()->pluck('id'))->isEmpty();
+    }
+
+    /**
+     * @return list<int>
+     */
+    public function grantableRoleIds(): array
+    {
+        return \Spatie\Permission\Models\Role::with('permissions')->get()
+            ->filter(fn ($role): bool => $this->canGrantRole($role))
+            ->pluck('id')
+            ->values()
+            ->all();
+    }
+
+    public function canManageUser(User $target): bool
+    {
+        return $target->roles->every(fn ($role): bool => $this->canGrantRole($role))
+            && ($this->hasRole('super_admin')
+                || $target->permissions->pluck('id')->diff($this->getAllPermissions()->pluck('id'))->isEmpty());
+    }
+
     public function createdBy()
     {
         return $this->belongsTo(User::class, 'created_by');

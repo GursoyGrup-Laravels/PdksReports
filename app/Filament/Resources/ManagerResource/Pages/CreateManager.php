@@ -3,6 +3,8 @@
 namespace App\Filament\Resources\ManagerResource\Pages;
 
 use App\Filament\Resources\ManagerResource;
+use App\Enums\ManagerTypeEnum;
+use App\Models\Scopes\UserAccess;
 use App\Models\User;
 use Filament\Actions;
 use Filament\Resources\Pages\CreateRecord;
@@ -21,6 +23,13 @@ class CreateManager extends CreateRecord
     protected function mutateFormDataBeforeCreate(array $data): array
     {
         $data['created_by'] = auth()->id();
+        $data['type'] = auth()->user()->hasRole('super_admin') ? ($data['type'] ?? ManagerTypeEnum::MANAGER->value) : ManagerTypeEnum::MANAGER->value;
+
+        abort_unless(
+            UserAccess::hasFullEmployeeAccess(auth()->user())
+                || UserAccess::selectableEmployees(auth()->user())->whereKey($data['employee_id'])->exists(),
+            403
+        );
 
         // Set the is_manager field of the related employee to YES
         $user = User::query()->where('employee_id', $data['employee_id'])->first();

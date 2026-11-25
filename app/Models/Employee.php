@@ -14,6 +14,7 @@ class Employee extends Model
 
     protected $fillable = [
         'emp_code',
+        'department_id',
         'tc_no',
         'first_name',
         'last_name',
@@ -51,6 +52,11 @@ class Employee extends Model
     public function latestReport()
     {
         return $this->hasOne(Report::class, 'employee_id', 'id')->latestOfMany();
+    }
+
+    public function department(): \Illuminate\Database\Eloquent\Relations\BelongsTo
+    {
+        return $this->belongsTo(Department::class);
     }
 
     //relation with Manager model

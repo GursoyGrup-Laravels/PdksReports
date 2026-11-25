@@ -4,12 +4,14 @@ namespace App\Filament\Resources;
 
 use App\Enums\ActiveStatusEnum;
 use App\Enums\ManagerStatusEnum;
+use App\Enums\ManagerTypeEnum;
 use App\Filament\Resources\ManagerResource\Pages;
 use App\Filament\Resources\ManagerResource\RelationManagers;
 use App\Models\Employee;
 use App\Models\Manager;
 use App\Models\Report;
 use App\Models\Scopes\AuthorizedManagerScope;
+use App\Models\Scopes\UserAccess;
 use App\Models\User;
 use Filament\Forms;
 use Filament\Forms\Components\Fieldset;
@@ -32,12 +34,12 @@ class ManagerResource extends Resource
 
     public static function getModelLabel(): string
     {
-        return __('ui.manager');
+        return __('ui.authorized_person');
     }
 
     public static function getPluralModelLabel(): string
     {
-        return __('ui.managers');
+        return __('ui.authorized_persons');
     }
 
     public static function getNavigationGroup(): ?string
@@ -146,6 +148,10 @@ class ManagerResource extends Resource
                                             $query->where('created_by', auth()->id());
                                         }
 
+                                        if (! UserAccess::hasFullEmployeeAccess(auth()->user())) {
+                                            $query->whereIn('employee_id', UserAccess::selectableEmployees(auth()->user())->select('employees.id'));
+                                        }
+
                                         $users = $query
                                             ->whereNotIn('employee_id', $existingEmployeeIds)
                                             ->orderBy('name')
@@ -166,6 +172,23 @@ class ManagerResource extends Resource
                                     ->validationMessages([
                                         'required' => __('ui.required'),
                                         ]),
+                                Forms\Components\Select::make('type')
+                                    ->label(__('ui.type'))
+                                    ->options(ManagerTypeEnum::class)
+                                    ->default(ManagerTypeEnum::MANAGER->value)
+                                    ->required()
+                                    ->selectablePlaceholder(false)
+                                    ->live()
+                                    ->visible(fn () => auth()->user()->hasRole('super_admin')),
+                                Forms\Components\CheckboxList::make('departments')
+                                    ->label(__('ui.departments'))
+                                    ->helperText(__('ui.hr_departments_hint'))
+                                    ->relationship('departments', 'name', fn ($query) => $query->orderByRaw('name is null, name'))
+                                    ->getOptionLabelFromRecordUsing(fn ($record) => $record->display_name)
+                                    ->searchable()
+                                    ->bulkToggleable()
+                                    ->columns(3)
+                                    ->visible(fn (Forms\Get $get) => auth()->user()->hasRole('super_admin') && in_array($get('type'), [ManagerTypeEnum::HR, ManagerTypeEnum::HR->value, (string) ManagerTypeEnum::HR->value], true)),
                             ]),
                     ]),
             ]);
@@ -206,6 +229,15 @@ class ManagerResource extends Resource
                     ->label(__('ui.position'))
                     ->searchable()
                     ->toggleable(isToggledHiddenByDefault: true),
+                Tables\Columns\TextColumn::make('type')
+                    ->label(__('ui.type'))
+                    ->badge()
+                    ->sortable(),
+                Tables\Columns\TextColumn::make('departments_count')
+                    ->label(__('ui.departments'))
+                    ->counts('departments')
+                    ->formatStateUsing(fn ($state, $record) => $record->type === ManagerTypeEnum::HR ? $state : '-')
+                    ->visible(fn () => auth()->user()->hasRole('super_admin')),
                 Tables\Columns\TextColumn::make('staffs_count')
                     ->label(__('ui.staffs_count'))
                     ->counts('staffs')
@@ -315,6 +347,11 @@ class ManagerResource extends Resource
             'edit' => Pages\EditManager::route('/{record}/edit'),
             'view' => Pages\ViewManager::route('/{record}')
         ];
+    }
+
+    public static function canEdit(Model $record): bool
+    {
+        return parent::canEdit($record) && ($record->type === ManagerTypeEnum::MANAGER || auth()->user()->hasRole('super_admin'));
     }
 
     public static function canDelete(Model $record): bool
