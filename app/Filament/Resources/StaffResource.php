@@ -115,6 +115,10 @@ class StaffResource extends Resource
                 Tables\Columns\TextColumn::make('employee.status')
                     ->label(__('ui.status'))
                     ->badge(),
+                Tables\Columns\TextColumn::make('employee.emp_code')
+                    ->label(__('ui.emp_code'))
+                    ->searchable()
+                    ->toggleable(),
                 Tables\Columns\TextColumn::make('employee.tc_no')
                     ->visible(fn () => auth()->user()->hasRole('super_admin') || auth()->user()->can('view_tc_no'))
                     ->label(__('ui.tc_no'))

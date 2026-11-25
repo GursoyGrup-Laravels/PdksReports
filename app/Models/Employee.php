@@ -13,6 +13,7 @@ class Employee extends Model
     use Notifiable, SoftDeletes;
 
     protected $fillable = [
+        'emp_code',
         'tc_no',
         'first_name',
         'last_name',
@@ -42,7 +43,7 @@ class Employee extends Model
     // Accessor for full name
     public function getFullNameAttribute(): string
     {
-        return "{$this->first_name} {$this->last_name}";
+        return trim("{$this->first_name} {$this->last_name}");
     }
 
     // Amaç: En son raporu alarak çalışanın en güncel bilgilerine erişmek, çünkü bazı sütunlar employee tablosunda değil, report tablosunda bulunuyor.

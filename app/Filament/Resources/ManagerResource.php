@@ -181,7 +181,7 @@ class ManagerResource extends Resource
                     ->sortable(query: fn ($query, $direction) =>
                         $query->orderBy(
                             \App\Models\Employee::selectRaw("CONCAT(first_name, ' ', last_name)")
-                                ->whereColumn('employees.id', 'staff.employee_id'),
+                                ->whereColumn('employees.id', 'managers.employee_id'),
                             $direction
                         )
                     )

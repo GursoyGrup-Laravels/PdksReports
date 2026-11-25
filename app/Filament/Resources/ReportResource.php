@@ -92,6 +92,10 @@ class ReportResource extends Resource
             ->modifyQueryUsing(fn (Builder $query) => $query->orderBy('full_name')->orderBy('date', 'desc'))
             ->paginated([5, 10, 25, 50])
             ->columns([
+                Tables\Columns\TextColumn::make('emp_code')
+                    ->label(__('ui.emp_code'))
+                    ->searchable(query: fn (Builder $query, string $search): Builder => $query->where('external_id', 'like', addcslashes($search, '\\%_') . '%'))
+                    ->toggleable(),
                 Tables\Columns\TextColumn::make('tc_no')
                     ->visible(fn ($record) => auth()->user()->hasRole('super_admin') || auth()->user()->can('view_tc_no'))
                     ->label(__('ui.tc_no'))

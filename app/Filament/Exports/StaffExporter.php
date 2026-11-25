@@ -25,6 +25,8 @@ class StaffExporter extends Exporter
         }
 
         $columns = array_merge($columns, [
+            ExportColumn::make('employee.emp_code')
+                ->label(__('ui.emp_code')),
             ExportColumn::make('employee.full_name')
                 ->label(__('ui.full_name')),
             ExportColumn::make('employee.latestReport.department_name')

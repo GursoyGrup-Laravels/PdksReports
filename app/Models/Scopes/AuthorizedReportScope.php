@@ -18,33 +18,36 @@ class AuthorizedReportScope
             return $query;
         }
 
-        $tcNos = once(fn () => static::resolveTcNos($user));
+        $employeeIds = once(fn () => static::resolveEmployeeIds($user));
 
-        return $tcNos->isEmpty()
+        return $employeeIds->isEmpty()
             ? $query->whereRaw('1 = 0')
-            : $query->whereIn('tc_no', $tcNos->toArray());
+            : $query->whereIn('employee_id', $employeeIds->toArray());
     }
 
-    private static function resolveTcNos(User $user): \Illuminate\Support\Collection
+    /**
+     * @return \Illuminate\Support\Collection<int, int>
+     */
+    private static function resolveEmployeeIds(User $user): \Illuminate\Support\Collection
     {
-        $tcNos = collect();
+        $employeeIds = collect();
 
-        if ($tcNo = $user->employee?->tc_no) {
-            $tcNos->push($tcNo);
+        if ($user->employee) {
+            $employeeIds->push($user->employee->id);
         }
 
         $manager = Manager::where('employee_id', $user->employee_id)->first();
 
         if ($manager) {
-            $staffTcNos = Employee::where('status', ManagerStatusEnum::ACTIVE)
+            $staffEmployeeIds = Employee::where('status', ManagerStatusEnum::ACTIVE)
                 ->whereIn('id',
                     Staff::where('manager_id', $manager->id)->select('employee_id')
                 )
-                ->pluck('tc_no');
+                ->pluck('id');
 
-            $tcNos = $tcNos->merge($staffTcNos)->unique();
+            $employeeIds = $employeeIds->merge($staffEmployeeIds)->unique();
         }
 
-        return $tcNos;
+        return $employeeIds;
     }
 }
