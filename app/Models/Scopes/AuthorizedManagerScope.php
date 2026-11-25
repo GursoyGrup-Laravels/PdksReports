@@ -3,13 +3,15 @@
 namespace App\Models\Scopes;
 
 use App\Enums\ManagerTypeEnum;
+use App\Models\Employee;
 use App\Models\User;
 use Illuminate\Database\Eloquent\Builder;
 
 class AuthorizedManagerScope
 {
     /**
-     * İK tanımlarını yalnızca super_admin görür; İK, seçili departmanlarındaki amirleri görür.
+     * İK tanımlarını yalnızca super_admin görür; diğerleri kapsamındaki amirleri görür.
+     * Kaydı oluşturmuş olmak tek başına görme hakkı vermez.
      */
     public static function apply(Builder $query, User $user): Builder
     {
@@ -23,10 +25,6 @@ class AuthorizedManagerScope
             return $query;
         }
 
-        $departmentIds = UserAccess::departmentIds($user);
-
-        return $query->where(fn (Builder $query) => $query
-            ->where('created_by', $user->id)
-            ->orWhereHas('employee', fn (Builder $query) => $query->whereIn('department_id', $departmentIds)));
+        return $query->whereIn('employee_id', AuthorizedEmployeeScope::apply(Employee::query(), $user)->select('employees.id'));
     }
 }

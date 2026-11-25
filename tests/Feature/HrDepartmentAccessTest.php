@@ -14,6 +14,7 @@ use App\Filament\Resources\ManagerResource\RelationManagers\StaffsRelationManage
 use App\Filament\Resources\ReportResource\Pages\ListReports;
 use App\Filament\Resources\UserResource;
 use App\Filament\Resources\UserResource\Pages\CreateUser;
+use App\Filament\Resources\UserResource\Pages\ListUsers;
 use App\Filament\Widgets\LatestReports;
 use App\Models\Department;
 use App\Models\Employee;
@@ -214,6 +215,24 @@ class HrDepartmentAccessTest extends TestCase
         $this->assertTrue(UserResource::canEdit(User::firstWhere('email', 'ok@example.com')));
         $this->assertFalse($this->hr->fresh()->can('update', Role::findByName('IK')));
         $this->assertTrue($this->admin->fresh()->can('update', Role::findByName('IK')));
+    }
+
+    public function test_records_created_while_super_admin_do_not_stay_visible_after_demotion(): void
+    {
+        $insideUser = $this->user($this->people['a1']->id, 'in@example.com', 'basit', $this->hr->id);
+        $outsideUser = $this->user($this->people['b1']->id, 'out@example.com', 'basit', $this->hr->id);
+        $inside = Manager::create(['employee_id' => $this->people['a1']->id, 'status' => 0, 'created_by' => $this->hr->id]);
+        $outside = Manager::create(['employee_id' => $this->people['b1']->id, 'status' => 0, 'created_by' => $this->hr->id]);
+
+        $this->actingAs($this->hr->fresh());
+        Livewire::test(ListManagers::class)->assertCanSeeTableRecords([$inside])->assertCanNotSeeTableRecords([$outside]);
+        Livewire::test(ListUsers::class)->assertCanSeeTableRecords([$insideUser])->assertCanNotSeeTableRecords([$outsideUser]);
+        $this->assertSame('1', ManagerResource::getNavigationBadge());
+
+        $this->hrRecord->update(['status' => 100]);
+        $this->actingAs($this->hr->fresh());
+        Livewire::test(ListManagers::class)->assertCanNotSeeTableRecords([$inside, $outside]);
+        Livewire::test(ListUsers::class)->assertCanNotSeeTableRecords([$insideUser, $outsideUser]);
     }
 
     public function test_admin_defines_hr_with_departments_from_the_panel(): void
