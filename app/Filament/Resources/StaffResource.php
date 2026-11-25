@@ -48,8 +48,17 @@ class StaffResource extends Resource
 
     public static function getNavigationBadge(): ?string
     {
-        $count = AuthorizedStaffScope::apply(Staff::query(), auth()->user())->count();
+        $count = AuthorizedStaffScope::apply(Staff::query(), auth()->user())
+            ->whereHas('employee', fn (Builder $query) => $query->where('status', ManagerStatusEnum::ACTIVE))
+            ->distinct()
+            ->count('employee_id');
+
         return $count > 0 ? (string) $count : null;
+    }
+
+    public static function getNavigationBadgeTooltip(): ?string
+    {
+        return __('ui.staff_badge_tooltip');
     }
 
 //    public static function getNavigationBadge(): ?string

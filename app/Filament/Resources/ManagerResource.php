@@ -52,8 +52,16 @@ class ManagerResource extends Resource
 
     public static function getNavigationBadge(): ?string
     {
-        $count = AuthorizedManagerScope::apply(Manager::query(), auth()->user())->count();
+        $count = AuthorizedManagerScope::apply(Manager::query(), auth()->user())
+            ->where('status', ManagerStatusEnum::ACTIVE)
+            ->count();
+
         return $count > 0 ? (string) $count : null;
+    }
+
+    public static function getNavigationBadgeTooltip(): ?string
+    {
+        return __('ui.managers_badge_tooltip');
     }
 
 //    public static function getNavigationBadge(): ?string

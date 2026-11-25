@@ -26,6 +26,30 @@ class AuthorizedReportScope
     }
 
     /**
+     * Kullanıcının görebildiği aktif personelin bugünkü sayıları.
+     *
+     * @return array{expected: int, checked: int, not_checked: int}
+     */
+    public static function todayCounts(User $user): array
+    {
+        return once(function () use ($user): array {
+            $counts = static::apply(Report::query(), $user)
+                ->where('date', '>=', today())
+                ->where('date', '<', today()->addDay())
+                ->where('status', ManagerStatusEnum::ACTIVE)
+                ->toBase()
+                ->selectRaw('COUNT(*) as expected, COUNT(first_reading) as checked')
+                ->first();
+
+            return [
+                'expected' => (int) $counts->expected,
+                'checked' => (int) $counts->checked,
+                'not_checked' => $counts->expected - $counts->checked,
+            ];
+        });
+    }
+
+    /**
      * @return \Illuminate\Support\Collection<int, int>
      */
     private static function resolveEmployeeIds(User $user): \Illuminate\Support\Collection

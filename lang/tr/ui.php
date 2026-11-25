@@ -1,6 +1,14 @@
 <?php
 
 return [
+    'reports_badge_tooltip' => 'Bugün: okutan / aktif personel',
+    'employees_badge_tooltip' => 'Aktif personel (toplam :total)',
+    'staff_badge_tooltip' => 'Aktif çalışan sayısı',
+    'managers_badge_tooltip' => 'Aktif amir sayısı',
+    'expected_today' => 'Bugün Beklenen',
+    'active_employees' => 'Aktif personel',
+    'checked_percent' => 'Aktif personelin %:percent kadarı',
+    'not_checked_hint' => 'İzinli ve hafta tatilindekiler dahil',
     'name' => 'İsim',
     'surname' => 'Soyisim',
     'full_name' => 'Tam İsim',
