@@ -13,6 +13,18 @@ enum ManagerStatusEnum: int implements HasLabel, HasColor, HasIcon
 
     case UNDEFINED  = 99; // tanımsız, bilinmeyen durumlar için
 
+    /**
+     * Kaynaktan gelen bilinmeyen durumlar ekranı bozmasın diye UNDEFINED kabul edilir.
+     */
+    public static function fromSource(mixed $value): self
+    {
+        if ($value === null || $value === '') {
+            return self::INACTIVE;
+        }
+
+        return is_numeric($value) ? (self::tryFrom((int) $value) ?? self::UNDEFINED) : self::UNDEFINED;
+    }
+
     public function getLabel(): string
     {
         return match ($this) {

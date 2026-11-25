@@ -1,6 +1,7 @@
 <?php
 
 return [
+    'emp_code' => 'Matricule',
     'name' => 'Nom',
     'email' => 'E-mail',
     'phone' => 'Téléphone',

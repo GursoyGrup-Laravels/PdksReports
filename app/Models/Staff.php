@@ -44,9 +44,9 @@ class Staff extends Model
             Report::class,
             Employee::class,
             'id',       // Employee.id
-            'tc_no',    // Report.tc_no
+            'employee_id', // Report.employee_id
             'employee_id', // Staff.employee_id
-            'tc_no'     // Employee.tc_no
+            'id'        // Employee.id
         )->where('reports.status', ManagerStatusEnum::ACTIVE);
     }
 

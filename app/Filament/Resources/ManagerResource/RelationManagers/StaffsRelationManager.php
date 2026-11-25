@@ -122,6 +122,10 @@ class StaffsRelationManager extends RelationManager
             ->modifyQueryUsing(fn (Builder $query) => $query->orderBy('created_at', 'desc'))
             ->paginated([5, 10, 25, 50])
             ->columns([
+                Tables\Columns\TextColumn::make('employee.emp_code')
+                    ->label(__('ui.emp_code'))
+                    ->searchable()
+                    ->toggleable(),
                 Tables\Columns\TextColumn::make('employee.tc_no')
                     ->visible(fn ($record) => auth()->user()->hasRole('super_admin') || auth()->user()->can('view_tc_no'))
                     ->label(__('ui.tc_no'))

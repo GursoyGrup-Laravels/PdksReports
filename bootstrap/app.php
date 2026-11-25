@@ -25,6 +25,17 @@ return Application::configure(basePath: dirname(__DIR__))
                 info(message: 'Rapor senkronizasyonu başarısız oldu.');
             });
 
+        $schedule->command('reports:sync-recent')
+            ->dailyAt('03:30')
+            ->withoutOverlapping()
+            ->timezone(config('app.timezone', 'UTC'))
+            ->onSuccess(function () {
+                info('Son 9 gün tamamlama başarıyla tamamlandı.');
+            })
+            ->onFailure(function () {
+                info('Son 9 gün tamamlama başarısız oldu.');
+            });
+
         $schedule->command('employee:daily')
             ->everyOddHour()
             ->timezone(config('app.timezone', 'UTC'))

@@ -215,6 +215,7 @@ return [
     'damaged' => 'Hasarlı',
     'unique' => 'Zaten kayıtlı',
     'tc_no' => 'T.C. Kimlik No',
+    'emp_code' => 'Sicil No',
     'notes' => 'Notlar',
     'cards_helper_text' => 'Alana tıkladıktan sonra kartı okuyucuya okutun',
     'other_information' => 'Diğer Bilgiler',

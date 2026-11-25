@@ -27,6 +27,19 @@ class Report extends Model
         'status' => ManagerStatusEnum::class,
     ];
 
+    /**
+     * external_id = "{emp_code}_{Ymd}"
+     */
+    public static function empCodeFromExternalId(?string $externalId): ?string
+    {
+        return preg_match('/^(.+)_\d{8}$/', (string) $externalId, $matches) ? trim($matches[1]) : null;
+    }
+
+    public function getEmpCodeAttribute(): ?string
+    {
+        return static::empCodeFromExternalId($this->external_id);
+    }
+
     public function employee()
     {
         return $this->belongsTo(Employee::class, 'employee_id', 'id');

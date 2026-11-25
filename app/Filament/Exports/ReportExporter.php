@@ -27,6 +27,8 @@ class ReportExporter extends Exporter
 
         // Diğer sütunlar
         $columns = array_merge($columns, [
+            ExportColumn::make('emp_code')
+                ->label(__('ui.emp_code')),
             ExportColumn::make('full_name')
                 ->label(__('ui.full_name')),
             ExportColumn::make('department_name')

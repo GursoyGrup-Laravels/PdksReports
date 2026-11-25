@@ -2,6 +2,8 @@
 
 namespace App\Services;
 
+use App\Enums\ManagerStatusEnum;
+use App\Models\Report;
 use Carbon\Carbon;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Http;
@@ -21,14 +23,123 @@ class ReportService
     }
 
     /**
-     * 90 günlük rapor.
+     * Kaynak uç yalnızca son 9 günü verir.
      */
     public function reportsLast90DaysService(): int
     {
-        return $this->processReports(
-            'http://10.10.50.6:8080/api/zk/cardreadingsninedays',
-            120
-        );
+        $stats = $this->syncRecent();
+
+        return $stats['eklenen'] + $stats['tamamlanan'];
+    }
+
+    /**
+     * Uç, kişi ve gün başına her terminal için ayrı satır döndürür; satırlar en erken/en geç okutmada birleştirilir.
+     * Mevcut saat hiçbir zaman daraltılmaz veya silinmez, o günkü departman ve durum korunur.
+     * Bugün günlük senkrona aittir; penceredeki ilk gün eksik geldiği için atlanır.
+     *
+     * @return array{eklenen: int, tamamlanan: int, degismeyen: int, gun: int}
+     */
+    public function syncRecent(): array
+    {
+        $response = Http::withToken((string) config('services.pdks.token'))
+            ->timeout(300)
+            ->get('http://10.10.50.6:8080/api/zk/cardreadingsninedays');
+
+        if ($response->failed() || ! is_array($response->json()) || $response->json() === []) {
+            throw new \Exception('Son 9 gün raporu alınamadı. HTTP Kod: ' . $response->status());
+        }
+
+        $merged = $this->mergeTerminalRows($response->json());
+        $stats = ['eklenen' => 0, 'tamamlanan' => 0, 'degismeyen' => 0, 'gun' => count(array_unique(array_column($merged, 'date')))];
+
+        foreach (array_chunk($merged, 1000) as $chunk) {
+            $this->handleRecentBatch($this->resolveEmployees($chunk), $stats);
+        }
+
+        Log::info('Son 9 gün tamamlandı', $stats);
+
+        return $stats;
+    }
+
+    /**
+     * @param  list<array<string, mixed>>  $dataList
+     * @return list<array<string, mixed>>
+     */
+    private function mergeTerminalRows(array $dataList): array
+    {
+        $merged = [];
+
+        foreach ($dataList as $data) {
+            $row = $this->formatData($data);
+
+            if ($row === null || $row['first_reading'] === null || $row['last_reading'] === null) {
+                continue;
+            }
+
+            $date = Carbon::createFromFormat('!Ymd', substr($row['external_id'], -8))->toDateString();
+
+            if (! str_starts_with($row['first_reading'], $date) || ! str_starts_with($row['last_reading'], $date)) {
+                continue;
+            }
+
+            $row['date'] = $date;
+            $known = $merged[$row['external_id']] ?? $row;
+            $row['first_reading'] = min($row['first_reading'], $known['first_reading']);
+            $row['last_reading'] = max($row['last_reading'], $known['last_reading']);
+            $row['working_time'] = self::workingTime($row['first_reading'], $row['last_reading']);
+            $merged[$row['external_id']] = $row;
+        }
+
+        if ($merged === []) {
+            return [];
+        }
+
+        $firstDay = min(array_column($merged, 'date'));
+        $today = today()->toDateString();
+
+        return array_values(array_filter($merged, fn (array $row): bool => $row['date'] > $firstDay && $row['date'] < $today));
+    }
+
+    /**
+     * @param  list<array<string, mixed>>  $rows
+     * @param  array<string, int>  $stats
+     */
+    private function handleRecentBatch(array $rows, array &$stats): void
+    {
+        $existing = DB::table('reports')
+            ->whereIn('external_id', array_column($rows, 'external_id'))
+            ->get(['external_id', 'first_reading', 'last_reading'])
+            ->keyBy('external_id');
+
+        $changed = [];
+
+        foreach ($rows as $row) {
+            $old = $existing->get($row['external_id']);
+
+            if ($old) {
+                $row['first_reading'] = min($row['first_reading'], $old->first_reading ?? $row['first_reading']);
+                $row['last_reading'] = max($row['last_reading'], $old->last_reading ?? $row['last_reading']);
+
+                if ($row['first_reading'] === $old->first_reading && $row['last_reading'] === $old->last_reading) {
+                    $stats['degismeyen']++;
+                    continue;
+                }
+
+                $row['working_time'] = self::workingTime($row['first_reading'], $row['last_reading']);
+            }
+
+            $stats[$old ? 'tamamlanan' : 'eklenen']++;
+            $changed[] = $row;
+        }
+
+        if ($changed !== []) {
+            DB::table('reports')->upsert($changed, ['external_id'], ['first_reading', 'last_reading', 'working_time', 'updated_at']);
+        }
+    }
+
+    private static function workingTime(string $first, string $last): string
+    {
+        return gmdate('H:i:s', (int) Carbon::parse($first)->diffInSeconds(Carbon::parse($last)));
     }
 
     /**
@@ -58,11 +169,6 @@ class ReportService
 
             foreach ($dataList as $data) {
 
-                // TC boşsa hiç ekleme
-                if (empty($data['tc_no'])) {
-                    continue;
-                }
-
                 $formatted = $this->formatData($data);
 
                 if ($formatted !== null) {
@@ -70,15 +176,13 @@ class ReportService
                 }
 
                 if (count($buffer) >= $batchSize) {
-                    $this->handleBatch($buffer);
-                    $totalProcessed += count($buffer);
+                    $totalProcessed += $this->handleBatch($buffer);
                     $buffer = [];
                 }
             }
 
             if (!empty($buffer)) {
-                $this->handleBatch($buffer);
-                $totalProcessed += count($buffer);
+                $totalProcessed += $this->handleBatch($buffer);
             }
 
             Log::info("Rapor tamamlandı. Toplam kayıt: {$totalProcessed}");
@@ -95,23 +199,53 @@ class ReportService
     /**
      * Batch işle: employee eşleme + upsert.
      */
-    protected function handleBatch(array $buffer): void
+    protected function handleBatch(array $buffer): int
     {
-        // Tüm TC’leri al
-        $tcList = array_column($buffer, 'tc_no');
+        $rows = $this->resolveEmployees($buffer);
 
-        // Çalışanları tek seferde çek (performanslı)
-        $employees = DB::table('employees')
-            ->whereIn('tc_no', $tcList)
-            ->pluck('id', 'tc_no')
-            ->toArray();
-
-        // employee_id’leri buffer’a ekle
-        foreach ($buffer as &$row) {
-            $row['employee_id'] = $employees[$row['tc_no']] ?? null;
+        if ($rows !== []) {
+            $this->upsertReports($rows);
         }
 
-        $this->upsertReports($buffer);
+        return count($rows);
+    }
+
+    /**
+     * @param  list<array<string, mixed>>  $buffer
+     * @return list<array<string, mixed>>
+     */
+    private function resolveEmployees(array $buffer): array
+    {
+        $empCodes = array_map(fn (array $row): string => (string) Report::empCodeFromExternalId($row['external_id']), $buffer);
+        $tcNos = array_values(array_filter(array_column($buffer, 'tc_no')));
+
+        $byEmpCode = DB::table('employees')
+            ->whereIn('emp_code', $empCodes)
+            ->pluck('id', 'emp_code');
+
+        // Henüz emp_code ile eşlenmemiş personeller için önceki TC eşlemesi korunur
+        $byTcNo = DB::table('employees')
+            ->whereNull('emp_code')
+            ->whereNull('deleted_at')
+            ->whereIn('tc_no', $tcNos)
+            ->pluck('id', 'tc_no');
+
+        $rows = [];
+
+        foreach ($buffer as $index => $row) {
+            $row['employee_id'] = $byEmpCode->get($empCodes[$index])
+                ?? ($row['tc_no'] !== null ? $byTcNo->get($row['tc_no']) : null);
+
+            if ($row['employee_id'] !== null) {
+                $rows[] = $row;
+            }
+        }
+
+        if (count($rows) < count($buffer)) {
+            Log::warning('Personeli bulunamayan raporlar atlandı', ['adet' => count($buffer) - count($rows)]);
+        }
+
+        return $rows;
     }
 
     /**
@@ -119,20 +253,12 @@ class ReportService
      */
     protected function formatData(array $data): ?array
     {
-        // TC boş veya null ise alma
-        if (empty($data['tc_no'])) {
+        if (Report::empCodeFromExternalId($data['external_id'] ?? null) === null) {
             return null;
         }
 
-        $tc = trim($data['tc_no']);
-
-        // ❗ TC tamamen sayılardan oluşmuyorsa alma
-        if (!preg_match('/^[0-9]+$/', $tc)) {
-            return null;
-        }
-
-        // Eğer 11 haneli olmak zorundaysa (opsiyonel):
-        // if (!preg_match('/^[0-9]{11}$/', $tc)) { return null; }
+        $tc = trim((string) ($data['tc_no'] ?? ''));
+        $tc = preg_match('/^[0-9]+$/', $tc) ? $tc : null;
 
         return [
             'external_id'     => $data['external_id'] ?? null,
@@ -145,7 +271,7 @@ class ReportService
             'first_reading'   => self::parseDate($data['first_reading'] ?? null),
             'last_reading'    => self::parseDate($data['last_reading'] ?? null),
             'working_time'    => $data['working_time'] ?? null,
-            'status'          => $data['status'] ?? null,
+            'status'          => ManagerStatusEnum::fromSource($data['status'] ?? null)->value,
             'created_at'      => now(),
             'updated_at'      => now(),
         ];
