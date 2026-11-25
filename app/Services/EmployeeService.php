@@ -12,7 +12,7 @@ class EmployeeService
 {
     public function employeeService()
     {
-        $response = Http::get('http://10.10.50.6:8080/api/zk/personnel_employee');
+        $response = Http::withToken((string) config('services.pdks.token'))->get('http://10.10.50.6:8080/api/zk/personnel_employee');
 
         if (!$response->successful()) {
             throw new \Exception("API isteği başarısız oldu: " . $response->status());

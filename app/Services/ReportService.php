@@ -43,7 +43,7 @@ class ReportService
         try {
             Log::info("Rapor çekiliyor: {$apiUrl}");
 
-            $response = Http::timeout($timeout)->get($apiUrl);
+            $response = Http::withToken((string) config('services.pdks.token'))->timeout($timeout)->get($apiUrl);
 
             if ($response->failed()) {
                 Log::error('API hatası', [

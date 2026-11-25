@@ -35,4 +35,6 @@ return [
         ],
     ],
 
+    'pdks' => ['token' => env('PDKS_API_TOKEN')],
+
 ];
