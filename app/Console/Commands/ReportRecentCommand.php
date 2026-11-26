@@ -14,7 +14,8 @@ class ReportRecentCommand extends Command
     public function handle(ReportService $reportService): int
     {
         try {
-            $this->info('✅ ' . json_encode($reportService->syncRecent()));
+            $stats = \App\Services\SyncLock::run(\App\Services\SyncLock::REPORTS, fn () => $reportService->syncRecent());
+            $this->info($stats === null ? 'Başka bir senkron çalışıyor, atlandı.' : '✅ ' . json_encode($stats));
 
             return Command::SUCCESS;
         } catch (\Throwable $e) {

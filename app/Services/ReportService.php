@@ -150,7 +150,18 @@ class ReportService
      */
     public function importFile(string $path, bool $write): array
     {
-        $rows = $this->readImportFile($path);
+        return $this->importFiles([$path], $write);
+    }
+
+    /**
+     * Birden fazla dosya veya zip birlikte doğrulanır; parçalara bölünmüş ay tek dosya gibi kontrol edilir.
+     *
+     * @param  list<string>  $paths
+     * @return array{eklenen: int, tamamlanan: int, degismeyen: int, gun: int, satir: int, personelsiz: int, basan: int}
+     */
+    public function importFiles(array $paths, bool $write): array
+    {
+        $rows = $this->readImportFile($paths);
         $dates = array_column($rows, 'date');
         $stats = [
             'eklenen' => 0, 'tamamlanan' => 0, 'degismeyen' => 0,
@@ -175,24 +186,13 @@ class ReportService
     /**
      * @return list<array<string, mixed>>
      */
-    private function readImportFile(string $path): array
+    /**
+     * @param  list<string>  $paths
+     * @return list<array<string, mixed>>
+     */
+    private function readImportFile(array $paths): array
     {
-        if (! is_file($path) || ! is_readable($path)) {
-            throw new \Exception('Dosya okunamadı.');
-        }
-
-        $content = (string) file_get_contents($path);
-
-        if (str_starts_with($content, "\xFF\xFE")) {
-            $content = mb_convert_encoding(substr($content, 2), 'UTF-8', 'UTF-16LE');
-        }
-
-        $content = preg_replace('/^\xEF\xBB\xBF/', '', $content);
-
-        if (! mb_check_encoding($content, 'UTF-8')) {
-            throw new \Exception('Dosya UTF-8 veya Unicode olmalı.');
-        }
-
+        $content = implode("\n", array_map(fn (string $path): string => $this->readImportContent($path), $paths));
         $columns = ['external_id', 'tc_no', 'full_name', 'department_name', 'position_name', 'date', 'day', 'first_reading', 'last_reading', 'working_time', 'status'];
         $rows = [];
         $perDay = [];
@@ -242,6 +242,69 @@ class ReportService
         }
 
         return array_values($rows);
+    }
+
+    /**
+     * Zip içindeki metin dosyaları da okunur; açılmış boyut sınırlıdır.
+     */
+    private function readImportContent(string $path): string
+    {
+        if (! is_file($path) || ! is_readable($path)) {
+            throw new \Exception('Dosya okunamadı.');
+        }
+
+        $raw = (string) file_get_contents($path);
+
+        if (! str_starts_with($raw, "PK\x03\x04")) {
+            return $this->decodeImportText($raw);
+        }
+
+        $zip = new \ZipArchive();
+
+        if ($zip->open($path) !== true) {
+            throw new \Exception('Zip dosyası açılamadı.');
+        }
+
+        $parts = [];
+
+        try {
+            for ($i = 0; $i < $zip->numFiles; $i++) {
+                $entry = $zip->statIndex($i);
+
+                if (str_ends_with($entry['name'], '/')) {
+                    continue;
+                }
+
+                if (! preg_match('/\.(txt|csv|rpt)$/i', $entry['name']) || $entry['size'] > 100 * 1024 * 1024) {
+                    throw new \Exception("Zip içinde desteklenmeyen dosya: {$entry['name']}");
+                }
+
+                $parts[] = $this->decodeImportText((string) $zip->getFromIndex($i));
+            }
+        } finally {
+            $zip->close();
+        }
+
+        if ($parts === []) {
+            throw new \Exception('Zip dosyası boş.');
+        }
+
+        return implode("\n", $parts);
+    }
+
+    private function decodeImportText(string $content): string
+    {
+        if (str_starts_with($content, "\xFF\xFE")) {
+            $content = mb_convert_encoding(substr($content, 2), 'UTF-8', 'UTF-16LE');
+        }
+
+        $content = (string) preg_replace('/^\xEF\xBB\xBF/', '', $content);
+
+        if (! mb_check_encoding($content, 'UTF-8')) {
+            throw new \Exception('Dosya UTF-8 veya Unicode olmalı.');
+        }
+
+        return $content;
     }
 
     private static function workingTime(string $first, string $last): string

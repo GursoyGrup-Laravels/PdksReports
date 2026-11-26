@@ -44,7 +44,7 @@ class LatestReports extends BaseWidget
             ->description(__('ui.last_10_records'))
             ->paginated(false)
             ->columns([
-                Tables\Columns\TextColumn::make('tc_no')
+                Tables\Columns\TextColumn::make('employee.tc_no')
                     ->visible(fn ($record) => auth()->user()->hasRole('super_admin') || auth()->user()->can('view_tc_no'))
                     ->label(__('ui.tc_no'))
                     ->toggleable(isToggledHiddenByDefault: true),

@@ -3,6 +3,7 @@
 namespace App\Filament\Resources\EmployeeResource\Pages;
 
 use App\Enums\ManagerStatusEnum;
+use App\Filament\Actions\SyncActions;
 use App\Filament\Resources\EmployeeResource;
 use App\Models\Employee;
 use App\Models\Scopes\AuthorizedEmployeeScope;
@@ -18,7 +19,7 @@ class ListEmployees extends ListRecords
     protected function getHeaderActions(): array
     {
         return [
-            Actions\CreateAction::make(),
+            SyncActions::employees(),
         ];
     }
 

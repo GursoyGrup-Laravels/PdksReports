@@ -28,7 +28,13 @@ class EmployeeCommand extends Command
         $this->info('📅 Günlük personel senkronizasyonu başlatılıyor...');
 
         try {
-            $count = $employeeService->employeeService();
+            $count = \App\Services\SyncLock::run(\App\Services\SyncLock::EMPLOYEES, fn () => $employeeService->employeeService());
+
+            if ($count === null) {
+                $this->warn('Başka bir senkron çalışıyor, atlandı.');
+
+                return Command::SUCCESS;
+            }
             $this->info("✅ Günlük personel tamamlandı. Toplam {$count} kayıt işlendi.");
             return Command::SUCCESS;
         } catch (\Throwable $e) {

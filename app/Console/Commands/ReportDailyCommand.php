@@ -28,7 +28,13 @@ class ReportDailyCommand extends Command
         $this->info('📅 Günlük rapor senkronizasyonu başlatılıyor...');
 
         try {
-            $count = $reportService->reportsDailyService();
+            $count = \App\Services\SyncLock::run(\App\Services\SyncLock::REPORTS, fn () => $reportService->reportsDailyService());
+
+            if ($count === null) {
+                $this->warn('Başka bir senkron çalışıyor, atlandı.');
+
+                return Command::SUCCESS;
+            }
             $this->info("✅ Günlük rapor tamamlandı. Toplam {$count} kayıt işlendi.");
             return Command::SUCCESS;
         } catch (\Throwable $e) {

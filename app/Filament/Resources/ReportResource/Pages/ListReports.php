@@ -3,6 +3,7 @@
 namespace App\Filament\Resources\ReportResource\Pages;
 
 use App\Enums\ManagerStatusEnum;
+use App\Filament\Actions\SyncActions;
 use App\Filament\Resources\ReportResource;
 use App\Models\Scopes\AuthorizedReportScope;
 use Filament\Actions;
@@ -17,7 +18,10 @@ class ListReports extends ListRecords
     protected function getHeaderActions(): array
     {
         return [
-            Actions\CreateAction::make(),
+            SyncActions::reports(),
+            SyncActions::import(),
+            SyncActions::confirmImport(),
+            SyncActions::cancelImport(),
         ];
     }
 
