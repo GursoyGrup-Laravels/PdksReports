@@ -11,6 +11,11 @@ class ReportExporter extends Exporter
 {
     protected static ?string $model = Report::class;
 
+    public static function modifyQuery(\Illuminate\Database\Eloquent\Builder $query): \Illuminate\Database\Eloquent\Builder
+    {
+        return $query->with('employee');
+    }
+
     public static function getColumns(): array
     {
         $isSuperAdmin = auth()->user()->hasRole('super_admin');
@@ -21,7 +26,7 @@ class ReportExporter extends Exporter
         // TC No sütunu sadece süper admin veya ilgili izne sahip kullanıcılar için gösterilir
         // ve dizinin başına eklenir
         if ($isSuperAdmin || $canViewTcNo) {
-            $columns[] = ExportColumn::make('tc_no')
+            $columns[] = ExportColumn::make('employee.tc_no')
                 ->label(__('ui.tc_no'));
         }
 
